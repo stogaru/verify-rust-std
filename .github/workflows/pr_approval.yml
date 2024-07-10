@@ -9,6 +9,11 @@ on:
     types: [submitted]
   workflow_dispatch:
 
+# Without these permissions, we get a 403 error from github
+# for trying to modify the pull request for newer project.
+# Source: https://stackoverflow.com/a/76994510
+permissions: write-all
+
 jobs:
   check-approvals:
     if: github.event.review.state == 'APPROVED' || github.event_name == 'workflow_dispatch'
@@ -95,20 +100,20 @@ jobs:
             );
 
             const requiredApprovals = 2;
-            const requiredApproversCount = Array.from(approvers)
+            const currentCountfromCommittee = Array.from(approvers)
               .filter(approver => requiredApprovers.includes(approver))
               .length;
 
             // TODO: Improve logging and messaging to the user
             console.log('PR Approvers:', Array.from(approvers));
-            console.log('Required Approvers:', requiredApproversCount);
+            console.log('Required Approvers:', requiredApprovals);
 
             // Core logic that checks if the approvers are in the committee
             const checkName = 'PR Approval Status';
-            const conclusion = (approvers.size >= requiredApprovals && requiredApproversCount >= 2) ? 'success' : 'failure';
+            const conclusion = (approvers.size >= requiredApprovals && currentCountfromCommittee >= 2) ? 'success' : 'failure';
             const output = {
               title: checkName,
-              summary: `PR has ${approvers.size} total approvals and ${requiredApproversCount} required approvals.`,
+              summary: `PR has ${approvers.size} total approvals and ${requiredApprovals} required approvals.`,
               text: `Approvers: ${Array.from(approvers).join(', ')}\nRequired Approvers: ${requiredApprovers.join(', ')}`
             };
 
@@ -152,5 +157,5 @@ jobs:
             }
 
             if (conclusion === 'failure') {
-              core.setFailed(`PR needs at least ${requiredApprovals} total approvals and 2 required approvals. Current approvals: ${approvers.size}, Required approvals: ${requiredApproversCount}`);
+              core.setFailed(`PR needs at least ${requiredApprovals} total approvals and 2 required approvals. Current approvals: ${approvers.size}, Required approvals: ${requiredApprovals}`);
             }
