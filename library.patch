@@ -1,0 +1,488 @@
+diff --git a/library/core/Cargo.toml b/library/core/Cargo.toml
+index 0c264234123..e9fb39f1996 100644
+--- a/library/core/Cargo.toml
++++ b/library/core/Cargo.toml
+@@ -24,6 +24,9 @@ name = "corebenches"
+ path = "benches/lib.rs"
+ test = true
+ 
++[dependencies]
++safety = {path = "../contracts/safety" }
++
+ [dev-dependencies]
+ rand = { version = "0.8.5", default-features = false }
+ rand_xorshift = { version = "0.3.0", default-features = false }
+diff --git a/library/core/src/alloc/layout.rs b/library/core/src/alloc/layout.rs
+index 0b92767c932..c63db5aa0aa 100644
+--- a/library/core/src/alloc/layout.rs
++++ b/library/core/src/alloc/layout.rs
+@@ -4,12 +4,16 @@
+ // collections, resulting in having to optimize down excess IR multiple times.
+ // Your performance intuition is useless. Run perf.
+ 
++use safety::requires;
+ use crate::cmp;
+ use crate::error::Error;
+ use crate::fmt;
+ use crate::mem;
+ use crate::ptr::{Alignment, NonNull};
+ 
++#[cfg(kani)]
++use crate::kani;
++
+ // While this function is used in one place and its implementation
+ // could be inlined, the previous attempts to do so made rustc
+ // slower:
+@@ -117,6 +121,7 @@ impl Layout {
+     #[must_use]
+     #[inline]
+     #[rustc_allow_const_fn_unstable(ptr_alignment_type)]
++    #[requires(Layout::from_size_align(size, align).is_ok())]
+     pub const unsafe fn from_size_align_unchecked(size: usize, align: usize) -> Self {
+         // SAFETY: the caller is required to uphold the preconditions.
+         unsafe { Layout { size, align: Alignment::new_unchecked(align) } }
+@@ -492,3 +497,21 @@ impl fmt::Display for LayoutError {
+         f.write_str("invalid parameters to Layout::from_size_align")
+     }
+ }
++
++#[cfg(kani)]
++#[unstable(feature="kani", issue="none")]
++mod verify {
++    use super::*;
++
++    #[kani::proof_for_contract(Layout::from_size_align_unchecked)]
++    pub fn check_from_size_align_unchecked() {
++        let s = kani::any::<usize>();
++        let a = kani::any::<usize>();
++
++        unsafe {
++            let layout = Layout::from_size_align_unchecked(s, a);
++            assert_eq!(layout.size(), s);
++            assert_eq!(layout.align(), a);
++        }
++    }
++}
+diff --git a/library/core/src/intrinsics.rs b/library/core/src/intrinsics.rs
+index 5a2a4c5ae6e..1ab7ef9b5dc 100644
+--- a/library/core/src/intrinsics.rs
++++ b/library/core/src/intrinsics.rs
+@@ -63,12 +63,16 @@
+ )]
+ #![allow(missing_docs)]
+ 
++use safety::requires;
+ use crate::marker::DiscriminantKind;
+ use crate::marker::Tuple;
+ use crate::mem::align_of;
+ use crate::ptr;
+ use crate::ub_checks;
+ 
++#[cfg(kani)]
++use crate::kani;
++
+ pub mod mir;
+ pub mod simd;
+ 
+@@ -2709,6 +2713,12 @@ pub const fn is_val_statically_known<T: Copy>(_arg: T) -> bool {
+ #[rustc_intrinsic]
+ // This has fallback `const fn` MIR, so shouldn't need stability, see #122652
+ #[rustc_const_unstable(feature = "const_typed_swap", issue = "none")]
++#[cfg_attr(kani, kani::modifies(x))]
++#[cfg_attr(kani, kani::modifies(y))]
++#[requires(ub_checks::can_dereference(x) && ub_checks::can_write(x))]
++#[requires(ub_checks::can_dereference(y) && ub_checks::can_write(y))]
++#[requires(x.addr() != y.addr() || core::mem::size_of::<T>() == 0)]
++#[requires((x.addr() >= y.addr() + core::mem::size_of::<T>()) || (y.addr() >= x.addr() + core::mem::size_of::<T>()))]
+ pub const unsafe fn typed_swap<T>(x: *mut T, y: *mut T) {
+     // SAFETY: The caller provided single non-overlapping items behind
+     // pointers, so swapping them with `count: 1` is fine.
+@@ -3142,3 +3152,37 @@ pub(crate) const fn miri_promise_symbolic_alignment(ptr: *const (), align: usize
+ 
+     const_eval_select((ptr, align), compiletime, runtime);
+ }
++
++#[cfg(kani)]
++#[unstable(feature="kani", issue="none")]
++mod verify {
++    use core::{cmp, fmt};
++    use super::*;
++    use crate::kani;
++
++    #[kani::proof_for_contract(typed_swap)]
++    pub fn check_typed_swap_u8() {
++        check_swap::<u8>()
++    }
++
++    #[kani::proof_for_contract(typed_swap)]
++    pub fn check_typed_swap_char() {
++        check_swap::<char>()
++    }
++
++    #[kani::proof_for_contract(typed_swap)]
++    pub fn check_typed_swap_non_zero() {
++        check_swap::<core::num::NonZeroI32>()
++    }
++
++    pub fn check_swap<T: kani::Arbitrary + Copy + cmp::PartialEq + fmt::Debug>() {
++        let mut x = kani::any::<T>();
++        let old_x = x;
++        let mut y = kani::any::<T>();
++        let old_y = y;
++
++        unsafe { typed_swap(&mut x, &mut y) };
++        assert_eq!(y, old_x);
++        assert_eq!(x, old_y);
++    }
++}
+diff --git a/library/core/src/lib.rs b/library/core/src/lib.rs
+index 206d1ab8852..7626d6d4a3c 100644
+--- a/library/core/src/lib.rs
++++ b/library/core/src/lib.rs
+@@ -431,6 +431,9 @@ mod unit;
+ #[stable(feature = "core_primitive", since = "1.43.0")]
+ pub mod primitive;
+ 
++#[cfg(kani)]
++kani_core::kani_lib!(core);
++
+ // Pull in the `core_arch` crate directly into core. The contents of
+ // `core_arch` are in a different repository: rust-lang/stdarch.
+ //
+diff --git a/library/core/src/mem/mod.rs b/library/core/src/mem/mod.rs
+index 9054ade2d79..cf3f819cd5c 100644
+--- a/library/core/src/mem/mod.rs
++++ b/library/core/src/mem/mod.rs
+@@ -13,6 +13,9 @@ use crate::intrinsics;
+ use crate::marker::DiscriminantKind;
+ use crate::ptr;
+ 
++#[cfg(kani)]
++use crate::kani;
++
+ mod manually_drop;
+ #[stable(feature = "manually_drop", since = "1.20.0")]
+ pub use manually_drop::ManuallyDrop;
+@@ -725,6 +728,8 @@ pub unsafe fn uninitialized<T>() -> T {
+ #[stable(feature = "rust1", since = "1.0.0")]
+ #[rustc_const_unstable(feature = "const_swap", issue = "83163")]
+ #[rustc_diagnostic_item = "mem_swap"]
++#[cfg_attr(kani, crate::kani::modifies(x))]
++#[cfg_attr(kani, crate::kani::modifies(y))]
+ pub const fn swap<T>(x: &mut T, y: &mut T) {
+     // SAFETY: `&mut` guarantees these are typed readable and writable
+     // as well as non-overlapping.
+@@ -1345,3 +1350,38 @@ pub macro offset_of($Container:ty, $($fields:expr)+ $(,)?) {
+     // The `{}` is for better error messages
+     {builtin # offset_of($Container, $($fields)+)}
+ }
++
++#[cfg(kani)]
++#[unstable(feature="kani", issue="none")]
++mod verify {
++    use super::*;
++    use crate::kani;
++
++    /// Use this type to ensure that mem swap does not drop the value.
++    #[derive(kani::Arbitrary)]
++    struct CannotDrop<T: kani::Arbitrary> {
++        inner: T,
++    }
++
++    impl<T: kani::Arbitrary> Drop for CannotDrop<T> {
++        fn drop(&mut self) {
++            unreachable!("Cannot drop")
++        }
++    }
++
++    #[kani::proof_for_contract(swap)]
++    pub fn check_swap_primitive() {
++        let mut x: u8 = kani::any();
++        let mut y: u8 = kani::any();
++        swap(&mut x, &mut y)
++    }
++
++    #[kani::proof_for_contract(swap)]
++    pub fn check_swap_adt_no_drop() {
++        let mut x: CannotDrop<char> = kani::any();
++        let mut y: CannotDrop<char> = kani::any();
++        swap(&mut x, &mut y);
++        forget(x);
++        forget(y);
++    }
++}
+diff --git a/library/core/src/ptr/alignment.rs b/library/core/src/ptr/alignment.rs
+index 68fce3960c7..e5f5bf6a503 100644
+--- a/library/core/src/ptr/alignment.rs
++++ b/library/core/src/ptr/alignment.rs
+@@ -1,8 +1,12 @@
++use safety::requires;
+ use crate::num::NonZero;
+ #[cfg(debug_assertions)]
+ use crate::ub_checks::assert_unsafe_precondition;
+ use crate::{cmp, fmt, hash, mem, num};
+ 
++#[cfg(kani)]
++use crate::kani;
++
+ /// A type storing a `usize` which is a power of two, and thus
+ /// represents a possible alignment in the Rust abstract machine.
+ ///
+@@ -76,6 +80,8 @@ impl Alignment {
+     #[unstable(feature = "ptr_alignment_type", issue = "102070")]
+     #[rustc_const_unstable(feature = "ptr_alignment_type", issue = "102070")]
+     #[inline]
++    #[requires(align > 0)]
++    #[requires((align & (align - 1)) == 0)]
+     pub const unsafe fn new_unchecked(align: usize) -> Self {
+         #[cfg(debug_assertions)]
+         assert_unsafe_precondition!(
+diff --git a/library/core/src/ptr/mod.rs b/library/core/src/ptr/mod.rs
+index d2bbdc84d4d..61d101c766f 100644
+--- a/library/core/src/ptr/mod.rs
++++ b/library/core/src/ptr/mod.rs
+@@ -416,6 +416,8 @@ use crate::marker::FnPtr;
+ use crate::ub_checks;
+ 
+ use crate::mem::{self, align_of, size_of, MaybeUninit};
++#[cfg(kani)]
++use crate::kani;
+ 
+ mod alignment;
+ #[unstable(feature = "ptr_alignment_type", issue = "102070")]
+@@ -1687,6 +1689,7 @@ pub const unsafe fn write_unaligned<T>(dst: *mut T, src: T) {
+ #[stable(feature = "volatile", since = "1.9.0")]
+ #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
+ #[rustc_diagnostic_item = "ptr_read_volatile"]
++#[safety::requires(ub_checks::can_dereference(src))]
+ pub unsafe fn read_volatile<T>(src: *const T) -> T {
+     // SAFETY: the caller must uphold the safety contract for `volatile_load`.
+     unsafe {
+@@ -1766,6 +1769,7 @@ pub unsafe fn read_volatile<T>(src: *const T) -> T {
+ #[stable(feature = "volatile", since = "1.9.0")]
+ #[rustc_diagnostic_item = "ptr_write_volatile"]
+ #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
++#[safety::requires(ub_checks::can_write(dst))]
+ pub unsafe fn write_volatile<T>(dst: *mut T, src: T) {
+     // SAFETY: the caller must uphold the safety contract for `volatile_store`.
+     unsafe {
+@@ -2290,3 +2294,20 @@ pub macro addr_of($place:expr) {
+ pub macro addr_of_mut($place:expr) {
+     &raw mut $place
+ }
++
++#[cfg(kani)]
++#[unstable(feature="kani", issue="none")]
++mod verify {
++    use crate::fmt::Debug;
++    use super::*;
++    use crate::kani;
++
++    #[kani::proof_for_contract(read_volatile)]
++    pub fn check_read_u128() {
++        let val = kani::any::<u16>();
++        let ptr = &val as *const _;
++        let copy = unsafe { read_volatile(ptr) };
++        assert_eq!(val, copy);
++    }
++}
++
+diff --git a/library/core/src/ub_checks.rs b/library/core/src/ub_checks.rs
+index 1aa6a288e70..b864b63c5c6 100644
+--- a/library/core/src/ub_checks.rs
++++ b/library/core/src/ub_checks.rs
+@@ -160,3 +160,51 @@ pub(crate) const fn is_nonoverlapping(
+     // This is just for safety checks so we can const_eval_select.
+     const_eval_select((src, dst, size, count), comptime, runtime)
+ }
++
++pub use predicates::*;
++
++/// Provide a few predicates to be used in safety contracts.
++///
++/// At runtime, they are no-op, and always return true.
++#[cfg(not(kani))]
++mod predicates {
++    /// Checks if a pointer can be dereferenced, ensuring:
++    ///   * `src` is valid for reads (see [`crate::ptr`] documentation).
++    ///   * `src` is properly aligned (use `read_unaligned` if not).
++    ///   * `src` points to a properly initialized value of type `T`.
++    ///
++    /// [`crate::ptr`]: https://doc.rust-lang.org/std/ptr/index.html
++    pub fn can_dereference<T>(src: *const T) -> bool {
++        let _ = src;
++        true
++    }
++
++    /// Check if a pointer can be written to:
++    /// * `dst` must be valid for writes.
++    /// * `dst` must be properly aligned. Use `write_unaligned` if this is not the
++    ///    case.
++    pub fn can_write<T>(dst: *mut T) -> bool {
++        let _ = dst;
++        true
++    }
++
++    /// Check if a pointer can be the target of unaligned reads.
++    /// * `src` must be valid for reads.
++    /// * `src` must point to a properly initialized value of type `T`.
++    pub fn can_read_unaligned<T>(src: *const T) -> bool {
++        let _ = src;
++        true
++    }
++
++    /// Check if a pointer can be the target of unaligned writes.
++    /// * `dst` must be valid for writes.
++    pub fn can_write_unaligned<T>(dst: *mut T) -> bool {
++        let _ = dst;
++        true
++    }
++}
++
++#[cfg(kani)]
++mod predicates {
++    pub use crate::kani::mem::{can_dereference, can_write, can_read_unaligned, can_write_unaligned};
++}
+diff --git a/library/portable-simd/README.md b/library/portable-simd/README.md
+new file mode 100644
+index 00000000000..e8ac600debe
+--- /dev/null
++++ b/library/portable-simd/README.md
+@@ -0,0 +1,59 @@
++# The Rust standard library's portable SIMD API
++![Build Status](https://github.com/rust-lang/portable-simd/actions/workflows/ci.yml/badge.svg?branch=master)
++
++Code repository for the [Portable SIMD Project Group](https://github.com/rust-lang/project-portable-simd).
++Please refer to [CONTRIBUTING.md](./CONTRIBUTING.md) for our contributing guidelines.
++
++The docs for this crate are published from the main branch.
++You can [read them here][docs].
++
++If you have questions about SIMD, we have begun writing a [guide][simd-guide].
++We can also be found on [Zulip][zulip-project-portable-simd].
++
++If you are interested in support for a specific architecture, you may want [stdarch] instead.
++
++## Hello World
++
++Now we're gonna dip our toes into this world with a small SIMD "Hello, World!" example. Make sure your compiler is up to date and using `nightly`. We can do that by running 
++
++```bash
++rustup update -- nightly
++```
++
++or by setting up `rustup default nightly` or else with `cargo +nightly {build,test,run}`. After updating, run 
++```bash
++cargo new hellosimd
++```
++to create a new crate. Finally write this in `src/main.rs`:
++```rust
++#![feature(portable_simd)]
++use std::simd::f32x4;
++fn main() {
++    let a = f32x4::splat(10.0);
++    let b = f32x4::from_array([1.0, 2.0, 3.0, 4.0]);
++    println!("{:?}", a + b);
++}
++```
++
++Explanation: We construct our SIMD vectors with methods like `splat` or `from_array`. Next, we can use operators like `+` on them, and the appropriate SIMD instructions will be carried out. When we run `cargo run` you should get `[11.0, 12.0, 13.0, 14.0]`.
++
++## Supported vectors
++
++Currently, vectors may have up to 64 elements, but aliases are provided only up to 512-bit vectors.
++
++Depending on the size of the primitive type, the number of lanes the vector will have varies. For example, 128-bit vectors have four `f32` lanes and two `f64` lanes.
++
++The supported element types are as follows:
++* **Floating Point:** `f32`, `f64`
++* **Signed Integers:** `i8`, `i16`, `i32`, `i64`, `isize` (`i128` excluded)
++* **Unsigned Integers:** `u8`, `u16`, `u32`, `u64`, `usize` (`u128` excluded)
++* **Pointers:** `*const T` and `*mut T` (zero-sized metadata only)
++* **Masks:** 8-bit, 16-bit, 32-bit, 64-bit, and `usize`-sized masks
++
++Floating point, signed integers, unsigned integers, and pointers are the [primitive types](https://doc.rust-lang.org/core/primitive/index.html) you're already used to.
++The mask types have elements that are "truthy" values, like `bool`, but have an unspecified layout because different architectures prefer different layouts for mask types.
++
++[simd-guide]: ./beginners-guide.md
++[zulip-project-portable-simd]: https://rust-lang.zulipchat.com/#narrow/stream/257879-project-portable-simd
++[stdarch]: https://github.com/rust-lang/stdarch
++[docs]: https://rust-lang.github.io/portable-simd/core_simd
+diff --git a/library/portable-simd/crates/core_simd/examples/README.md b/library/portable-simd/crates/core_simd/examples/README.md
+new file mode 100644
+index 00000000000..82747f1b5a6
+--- /dev/null
++++ b/library/portable-simd/crates/core_simd/examples/README.md
+@@ -0,0 +1,13 @@
++### `stdsimd` examples
++
++This crate is a port of example uses of `stdsimd`, mostly taken from the `packed_simd` crate.
++
++The examples contain, as in the case of `dot_product.rs`, multiple ways of solving the problem, in order to show idiomatic uses of SIMD and iteration of performance designs.
++
++Run the tests with the command 
++
++```
++cargo run --example dot_product
++```
++
++and verify the code for `dot_product.rs` on your machine.
+diff --git a/library/rustc-std-workspace-core/README.md b/library/rustc-std-workspace-core/README.md
+new file mode 100644
+index 00000000000..40e0b62afab
+--- /dev/null
++++ b/library/rustc-std-workspace-core/README.md
+@@ -0,0 +1,29 @@
++# The `rustc-std-workspace-core` crate
++
++This crate is a shim and empty crate which simply depends on `libcore` and
++reexports all of its contents. The crate is the crux of empowering the standard
++library to depend on crates from crates.io
++
++Crates on crates.io that the standard library depend on need to depend on the
++`rustc-std-workspace-core` crate from crates.io, which is empty. We use
++`[patch]` to override it to this crate in this repository. As a result, crates
++on crates.io will draw a dependency edge to `libcore`, the version defined in
++this repository. That should draw all the dependency edges to ensure Cargo
++builds crates successfully!
++
++Note that crates on crates.io need to depend on this crate with the name `core`
++for everything to work correctly. To do that they can use:
++
++```toml
++core = { version = "1.0.0", optional = true, package = 'rustc-std-workspace-core' }
++```
++
++Through the use of the `package` key the crate is renamed to `core`, meaning
++it'll look like
++
++```
++--extern core=.../librustc_std_workspace_core-XXXXXXX.rlib
++```
++
++when Cargo invokes the compiler, satisfying the implicit `extern crate core`
++directive injected by the compiler.
+diff --git a/library/rustc-std-workspace-std/README.md b/library/rustc-std-workspace-std/README.md
+new file mode 100644
+index 00000000000..2228907f304
+--- /dev/null
++++ b/library/rustc-std-workspace-std/README.md
+@@ -0,0 +1,3 @@
++# The `rustc-std-workspace-std` crate
++
++See documentation for the `rustc-std-workspace-core` crate.
+diff --git a/library/std/src/sys/pal/windows/c/README.md b/library/std/src/sys/pal/windows/c/README.md
+new file mode 100644
+index 00000000000..d458e55efbc
+--- /dev/null
++++ b/library/std/src/sys/pal/windows/c/README.md
+@@ -0,0 +1,9 @@
++The `windows_sys.rs` file is autogenerated from `bindings.txt` and must not
++be edited manually.
++
++To add bindings, edit `bindings.txt` then regenerate using the following command:
++
++    ./x run generate-windows-sys && ./x fmt library/std
++
++If you need to override generated functions or types then add them to
++`library/std/src/sys/pal/windows/c.rs`.
