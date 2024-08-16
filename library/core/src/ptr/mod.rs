@@ -409,15 +409,9 @@
 #![allow(clippy::not_unsafe_ptr_arg_deref)]
 
 use crate::cmp::Ordering;
-use crate::fmt;
-use crate::hash;
-use crate::intrinsics;
 use crate::marker::FnPtr;
-use crate::ub_checks;
-
-use crate::mem::{self, align_of, size_of, MaybeUninit};
-#[cfg(kani)]
-use crate::kani;
+use crate::mem::{self, MaybeUninit};
+use crate::{fmt, hash, intrinsics, ub_checks};
 
 mod alignment;
 #[unstable(feature = "ptr_alignment_type", issue = "102070")]
