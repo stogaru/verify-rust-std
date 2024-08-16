@@ -8,6 +8,9 @@
 use crate::marker::DiscriminantKind;
 use crate::{clone, cmp, fmt, hash, intrinsics, ptr};
 
+#[cfg(kani)]
+use crate::kani;
+
 mod manually_drop;
 #[stable(feature = "manually_drop", since = "1.20.0")]
 pub use manually_drop::ManuallyDrop;

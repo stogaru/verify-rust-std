@@ -413,6 +413,9 @@ use crate::marker::FnPtr;
 use crate::mem::{self, MaybeUninit};
 use crate::{fmt, hash, intrinsics, ub_checks};
 
+#[cfg(kani)]
+use crate::kani;
+
 mod alignment;
 #[unstable(feature = "ptr_alignment_type", issue = "102070")]
 pub use alignment::Alignment;

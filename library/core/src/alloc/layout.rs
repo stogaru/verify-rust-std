@@ -4,9 +4,13 @@
 // collections, resulting in having to optimize down excess IR multiple times.
 // Your performance intuition is useless. Run perf.
 
+use safety::requires;
 use crate::error::Error;
 use crate::ptr::{Alignment, NonNull};
 use crate::{cmp, fmt, mem};
+
+#[cfg(kani)]
+use crate::kani;
 
 // While this function is used in one place and its implementation
 // could be inlined, the previous attempts to do so made rustc

@@ -63,8 +63,12 @@
 )]
 #![allow(missing_docs)]
 
+use safety::requires;
 use crate::marker::{DiscriminantKind, Tuple};
 use crate::{ptr, ub_checks};
+
+#[cfg(kani)]
+use crate::kani;
 
 pub mod mir;
 pub mod simd;

@@ -6,6 +6,9 @@ use crate::str::from_utf8_unchecked_mut;
 use crate::unicode::printable::is_printable;
 use crate::unicode::{self, conversions};
 
+#[cfg(kani)]
+use crate::kani;
+
 impl char {
     /// The lowest valid code point a `char` can have, `'\0'`.
     ///
