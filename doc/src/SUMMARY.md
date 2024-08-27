@@ -22,4 +22,5 @@
   - [Contracts for SmallSort](./challenges/0008-smallsort.md)
   - [Safe abstractions for `core::time::Duration`](./challenges/0009-duration.md)
   - [Memory safety of String](./challenges/0010-string.md)
+  - [Safety of Methods for Numeric Primitive Types](./challenges/0011-floats-ints.md)
   - [Safety of NonZero](./challenges/0012-nonzero.md)
