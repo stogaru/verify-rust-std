@@ -453,6 +453,7 @@ impl AsciiChar {
     /// or returns `None` if it's too large.
     #[unstable(feature = "ascii_char", issue = "110998")]
     #[inline]
+    #[ensures(|result| (b <= 127) == (result.is_some() && result.unwrap() as u8 == b))]
     pub const fn from_u8(b: u8) -> Option<Self> {
         if b <= 127 {
             // SAFETY: Just checked that `b` is in-range
@@ -470,6 +471,8 @@ impl AsciiChar {
     /// `b` must be in `0..=127`, or else this is UB.
     #[unstable(feature = "ascii_char", issue = "110998")]
     #[inline]
+    #[requires(b <= 127)]
+    #[ensures(|result| *result as u8 == b)]
     pub const unsafe fn from_u8_unchecked(b: u8) -> Self {
         // SAFETY: Our safety precondition is that `b` is in-range.
         unsafe { transmute(b) }
