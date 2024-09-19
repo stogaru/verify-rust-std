@@ -388,6 +388,9 @@ impl<T: ?Sized> *const T {
     #[rustc_const_stable(feature = "const_ptr_offset", since = "1.61.0")]
     #[inline(always)]
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
+    #[kani::requires(kani::mem::can_dereference(self))]
+    #[kani::requires(count == 0)]
+    #[kani::ensures(|result| kani::mem::can_dereference(result))]
     pub const unsafe fn offset(self, count: isize) -> *const T
     where
         T: Sized,
@@ -1774,3 +1777,20 @@ impl<T: ?Sized> PartialOrd for *const T {
         *self >= *other
     }
 }
+
+#[cfg(kani)]
+#[unstable(feature="kani", issue="none")]
+mod verify {
+    use super::*;
+    use crate::kani;
+
+    #[allow(unused)]
+    #[kani::proof_for_contract(<*const T>::offset)]
+    fn check_offset_i32() {
+        let mut test_val: i32 = kani::any();
+        let test_ptr: *const i32 = &test_val;
+        let offset: isize = kani::any();
+        unsafe {test_ptr.offset(offset)};    
+    }              
+}
+
