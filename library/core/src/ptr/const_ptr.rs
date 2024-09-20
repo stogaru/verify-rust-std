@@ -401,7 +401,8 @@ impl<T: ?Sized> *const T {
     #[inline(always)]
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
     #[requires(kani::mem::can_dereference(self))]
-    #[requires(count == 0)]
+    // TODO: Determine the valid value range for 'count' and update the precondition accordingly.
+    #[requires(count == 0)] // This precondition is currently a placeholder.
     #[ensures(|result| kani::mem::can_dereference(result))]
     pub const unsafe fn offset(self, count: isize) -> *const T
     where
@@ -1792,6 +1793,8 @@ impl<T: ?Sized> PartialOrd for *const T {
     }
 }
 
+// This module contains all proof harnesses for function contracts.
+// Each proof harness verifies the soundness of a function contract for a specific type.
 #[cfg(kani)]
 #[unstable(feature = "kani", issue = "none")]
 mod verify {
