@@ -277,11 +277,7 @@ impl<T: ?Sized> *const T {
     pub const unsafe fn as_ref<'a>(self) -> Option<&'a T> {
         // SAFETY: the caller must guarantee that `self` is valid
         // for a reference if it isn't null.
-        if self.is_null() {
-            None
-        } else {
-            unsafe { Some(&*self) }
-        }
+        if self.is_null() { None } else { unsafe { Some(&*self) } }
     }
 
     /// Returns a shared reference to the value behind the pointer.
@@ -349,11 +345,7 @@ impl<T: ?Sized> *const T {
     {
         // SAFETY: the caller must guarantee that `self` meets all the
         // requirements for a reference.
-        if self.is_null() {
-            None
-        } else {
-            Some(unsafe { &*(self as *const MaybeUninit<T>) })
-        }
+        if self.is_null() { None } else { Some(unsafe { &*(self as *const MaybeUninit<T>) }) }
     }
 
     /// Adds an offset to a pointer.
@@ -511,9 +503,7 @@ impl<T: ?Sized> *const T {
     #[rustc_const_stable(feature = "const_pointer_byte_offsets", since = "1.75.0")]
     #[rustc_allow_const_fn_unstable(set_ptr_value)]
     pub const fn wrapping_byte_offset(self, count: isize) -> Self {
-        self.cast::<u8>()
-            .wrapping_offset(count)
-            .with_metadata_of(self)
+        self.cast::<u8>().wrapping_offset(count).with_metadata_of(self)
     }
 
     /// Masks out bits of the pointer according to a mask.
@@ -1793,19 +1783,17 @@ impl<T: ?Sized> PartialOrd for *const T {
     }
 }
 
-// This module contains all proof harnesses for function contracts.
-// Each proof harness verifies the soundness of a function contract for a specific type.
 #[cfg(kani)]
 #[unstable(feature = "kani", issue = "none")]
 mod verify {
     use crate::kani;
-
+    
     #[allow(unused)]
     #[kani::proof_for_contract(<*const i32>::offset)]
-    fn check_offset_i32() {
+    fn check_offset_i32() {        
         let mut test_val: i32 = kani::any();
         let test_ptr: *const i32 = &test_val;
         let offset: isize = kani::any();
         unsafe { test_ptr.offset(offset) };
-    }
+    }    
 }
