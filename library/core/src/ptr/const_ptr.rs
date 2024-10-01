@@ -1805,4 +1805,17 @@ mod verify {
         let offset: isize = kani::any();
         unsafe { test_ptr.offset(offset) };
     }
+
+    #[kani::proof_for_contract(<*const i32>::offset)]
+    fn check_offset_slice_i32(){
+        let mut arr: [i32; 5] = kani::any();
+        let test_ptr: *const i32 = arr.as_ptr();
+        let offset: isize = kani::any();
+
+        unsafe{
+            let new_ptr = test_ptr.offset(offset);
+            let _ = * new_ptr;
+        }
+    }
+
 }
