@@ -885,6 +885,10 @@ impl<T: ?Sized> *const T {
     #[rustc_const_stable(feature = "const_pointer_byte_offsets", since = "1.75.0")]
     #[rustc_allow_const_fn_unstable(set_ptr_value)]
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
+    // #[requires(kani::mem::can_dereference(self))]
+    // // TODO: Determine the valid value range for 'count' and update the precondition accordingly.
+    // #[requires(count == 0)] // This precondition is currently a placeholder.
+    // #[ensures(|result| kani::mem::can_dereference(result))]
     pub const unsafe fn byte_add(self, count: usize) -> Self {
         // SAFETY: the caller must uphold the safety contract for `add`.
         unsafe { self.cast::<u8>().add(count).with_metadata_of(self) }
@@ -936,10 +940,10 @@ impl<T: ?Sized> *const T {
     #[rustc_allow_const_fn_unstable(unchecked_neg)]
     #[inline(always)]
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
-    // #[requires(kani::mem::can_dereference(self))]
-    // // TODO: Determine the valid value range for 'count' and update the precondition accordingly.
-    // #[requires(count == 0)] // This precondition is currently a placeholder.
-    // #[ensures(|result| kani::mem::can_dereference(result))]
+    #[requires(kani::mem::can_dereference(self))]
+    // TODO: Determine the valid value range for 'count' and update the precondition accordingly.
+    #[requires(count == 0)] // This precondition is currently a placeholder.
+    #[ensures(|result| kani::mem::can_dereference(result))]
     pub const unsafe fn sub(self, count: usize) -> Self
     where
         T: Sized,
@@ -1796,6 +1800,7 @@ impl<T: ?Sized> PartialOrd for *const T {
 mod verify {
     use crate::kani;
 
+    // fn <*const T>::offset verification begin
     macro_rules! generate_offset_harness {
         ($type:ty, $proof_name:ident) => {
             #[allow(unused)]
@@ -1823,7 +1828,9 @@ mod verify {
     generate_offset_harness!(u64, check_offset_u64);
     generate_offset_harness!(u128, check_offset_u128);
     generate_offset_harness!(usize, check_offset_usize);
+    // fn <*const T>::offset verification end
 
+    // fn <*const T>::add verification begin
     macro_rules! generate_add_harness {
         ($type:ty, $proof_name:ident) => {
             #[allow(unused)]
@@ -1851,4 +1858,65 @@ mod verify {
     generate_add_harness!(u64, check_add_u64);
     generate_add_harness!(u128, check_add_u128);
     generate_add_harness!(usize, check_add_usize);    
+    // fn <*const T>::add verification end
+
+    // fn <*const T>::byte_add verification begin
+    // macro_rules! generate_byte_add_harness {
+    //     ($type:ty, $proof_name:ident) => {
+    //         #[allow(unused)]
+    //         #[kani::proof_for_contract(<*const $type>::add)]
+    //         pub fn $proof_name() {
+    //             let mut test_val: $type = kani::any::<$type>();
+    //             let test_ptr: *const $type = &test_val;
+    //             let count: usize = kani::any();
+    //             unsafe {
+    //                 test_ptr.byte_add(count);
+    //             }
+    //         }
+    //     };
+    // }
+
+    // generate_byte_add_harness!(i8, check_byte_add_i8);
+    // generate_byte_add_harness!(i16, check_byte_add_i16);
+    // generate_byte_add_harness!(i32, check_byte_add_i32);
+    // generate_byte_add_harness!(i64, check_byte_add_i64);
+    // generate_byte_add_harness!(i128, check_byte_add_i128);
+    // generate_byte_add_harness!(isize, check_byte_add_isize);
+    // generate_byte_add_harness!(u8, check_byte_add_u8);
+    // generate_byte_add_harness!(u16, check_byte_add_u16);
+    // generate_byte_add_harness!(u32, check_byte_add_u32);
+    // generate_byte_add_harness!(u64, check_byte_add_u64);
+    // generate_byte_add_harness!(u128, check_byte_add_u128);
+    // generate_byte_add_harness!(usize, check_byte_add_usize);
+    // fn <*const T>::byte_add verification end  
+
+    // fn <*const T>::sub verification begin
+    macro_rules! generate_sub_harness {
+        ($type:ty, $proof_name:ident) => {
+            #[allow(unused)]
+            #[kani::proof_for_contract(<*const $type>::sub)]
+            pub fn $proof_name() {
+                let mut test_val: $type = kani::any::<$type>();
+                let test_ptr: *const $type = &test_val;
+                let count: usize = kani::any();
+                unsafe {
+                    test_ptr.sub(count);
+                }
+            }
+        };
+    }
+
+    generate_sub_harness!(i8, check_sub_i8);
+    generate_sub_harness!(i16, check_sub_i16);
+    generate_sub_harness!(i32, check_sub_i32);
+    generate_sub_harness!(i64, check_sub_i64);
+    generate_sub_harness!(i128, check_sub_i128);
+    generate_sub_harness!(isize, check_sub_isize);
+    generate_sub_harness!(u8, check_sub_u8);
+    generate_sub_harness!(u16, check_sub_u16);
+    generate_sub_harness!(u32, check_sub_u32);
+    generate_sub_harness!(u64, check_sub_u64);
+    generate_sub_harness!(u128, check_sub_u128);
+    generate_sub_harness!(usize, check_sub_usize);    
+    // fn <*const T>::sub verification end
 }
