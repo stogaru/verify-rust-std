@@ -1885,22 +1885,13 @@ mod verify {
     generate_offset_harness!(u128, check_offset_u128);
     generate_offset_harness!(usize, check_offset_usize);
     // fn <*const T>::offset verification end
-
-    
-    #[allow(unused)]
-    #[kani::proof_for_contract(<*const i32>::offset)]
-    fn check_offset_i32() {        
-        let mut test_val: i32 = kani::any();
-        let test_ptr: *const i32 = &test_val;
-        let offset: isize = kani::any();
-        unsafe { test_ptr.offset(offset) };
-    }    
+   
 
     #[allow(unused)]
-    #[kani::proof_for_contract(<*const i32>::offset)]
+    #[kani::proof_for_contract(<*const ()>::offset)]
     fn verify_offset_unit() {
-        let mut array: [u8; 2] = [0, 1];
-        let ptr: *const u8 = array.as_ptr();
+        let mut array: [(); 2] = [(), ()];
+        let ptr: *const () = array.as_ptr();
         let result = unsafe { ptr.offset(0) };
         assert!(ptr == result);
         unsafe {
@@ -1909,7 +1900,7 @@ mod verify {
     } 
 
     #[allow(unused)]
-    #[kani::proof_for_contract(<*const i32>::offset)]
+    #[kani::proof_for_contract(<*const ()>::offset)]
     fn verify_offset_unit_generic<T: Sized + Default + Copy>() {
         let mut array: [T; 2] = [T::default(), T::default()];
         let ptr: *const T = array.as_ptr();
