@@ -1796,6 +1796,40 @@ impl<T: ?Sized> PartialOrd for *const T {
 mod verify {
     use crate::kani;
 
+    #[allow(unused)]
+
+    #[kani::proof_for_contract(<*const i32>::offset)]
+    fn check_offset_slice_i32(){
+        let mut arr: [i32; 5] = kani::any();
+        let test_ptr: *const i32 = arr.as_ptr();
+        let offset: isize = kani::any();
+
+        unsafe{
+            let new_ptr = test_ptr.offset(offset);
+        }
+    }
+
+    #[kani::proof_for_contract(<*const i32>::add)]
+    fn check_add_slice_i32() {
+        let mut arr: [i32; 5] = kani::any();
+        let test_ptr: *const i32 = arr.as_ptr();
+        let count: usize = kani::any();
+        unsafe {
+            let new_ptr = test_ptr.add(count);
+        }
+    }
+
+
+    #[kani::proof_for_contract(<*const i32>::sub)]
+    fn check_sub_slice_i32() {
+        let mut arr: [i32; 5] = kani::any();
+        let test_ptr: *const i32 = arr.as_ptr();
+        let count: usize = kani::any();
+        unsafe {
+            let new_ptr = test_ptr.sub(count);
+        }
+    }
+  
      // fn <*const T>::add verification begin
      macro_rules! generate_add_harness {
         ($type:ty, $proof_name:ident) => {
