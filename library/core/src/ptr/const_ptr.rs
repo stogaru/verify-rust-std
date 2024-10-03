@@ -1824,10 +1824,10 @@ mod verify {
     generate_add_harness!(u64, check_add_u64);
     generate_add_harness!(u128, check_add_u128);
     generate_add_harness!(usize, check_add_usize);
-    generate_add_harness!((i8, i8), check_offset_tuple_1);
-    generate_add_harness!((f64, bool), check_offset_tuple_2);
-    generate_add_harness!((i32, f64, bool), check_offset_tuple_3);
-    generate_add_harness!((i8, u16, i32, u64, isize), check_offset_tuple_4);
+    generate_add_harness!((i8, i8), check_add_tuple_1);
+    generate_add_harness!((f64, bool), check_add_tuple_2);
+    generate_add_harness!((i32, f64, bool), check_add_tuple_3);
+    generate_add_harness!((i8, u16, i32, u64, isize), check_add_tuple_4);
     // fn <*const T>::add verification end
 
     // fn <*const T>::sub verification begin
@@ -1858,10 +1858,10 @@ mod verify {
     generate_sub_harness!(u64, check_sub_u64);
     generate_sub_harness!(u128, check_sub_u128);
     generate_sub_harness!(usize, check_sub_usize);
-    generate_sub_harness!((i8, i8), check_offset_tuple_1);
-    generate_sub_harness!((f64, bool), check_offset_tuple_2);
-    generate_sub_harness!((i32, f64, bool), check_offset_tuple_3);
-    generate_sub_harness!((i8, u16, i32, u64, isize), check_offset_tuple_4);
+    generate_sub_harness!((i8, i8), check_sub_tuple_1);
+    generate_sub_harness!((f64, bool), check_sub_tuple_2);
+    generate_sub_harness!((i32, f64, bool), check_sub_tuple_3);
+    generate_sub_harness!((i8, u16, i32, u64, isize), check_sub_tuple_4);
     // fn <*const T>::sub verification end
 
     // fn <*const T>::offset verification begin
