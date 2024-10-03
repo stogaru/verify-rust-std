@@ -2242,32 +2242,4 @@ mod verify {
     generate_mut_add_harness!(usize, check_mut_add_usize);    
     // fn <*mut T>::add verification begin
 
-    // fn <*mut T>::sub verification begin
-    // TODO
-    // fn <*mut T>::sub verification end
-
-    // fn <*mut T>::offset verification begin
-    // TODO
-    // fn <*mut T>::offset verification end
-
-    // fn <*mut T>::offset_from verification begin
-    // TODO
-    // fn <*mut T>::offset_from verification end
-
-    // fn <*mut T>::byte_add verification begin
-    // TODO
-    // fn <*mut T>::byte_add verification end
-
-    // fn <*mut T>::byte_sub verification begin
-    // TODO
-    // fn <*mut T>::byte_sub verification end
-
-    // fn <*mut T>::byte_offset verification begin
-    // TODO
-    // fn <*mut T>::byte_offset verification end
-
-    // fn <*mut T>::byte_offset_from verification begin
-    // TODO
-    // fn <*mut T>::byte_offset_from verification end
-
 }
