@@ -1796,4 +1796,29 @@ mod verify {
         let offset: isize = kani::any();
         unsafe { test_ptr.offset(offset) };
     }    
+
+    #[allow(unused)]
+    #[kani::proof_for_contract(<*const i32>::offset)]
+    fn verify_offset_unit() {
+        let mut array: [u8; 2] = [0, 1];
+        let ptr: *const u8 = array.as_ptr();
+        let result = unsafe { ptr.offset(0) };
+        assert!(ptr == result);
+        unsafe {
+            let _value = *result;
+        }
+    } 
+
+    #[allow(unused)]
+    #[kani::proof_for_contract(<*const i32>::offset)]
+    fn verify_offset_unit_generic<T: Sized + Default + Copy>() {
+        let mut array: [T; 2] = [T::default(), T::default()];
+        let ptr: *const T = array.as_ptr();
+        let result = unsafe { ptr.offset(0) };
+        assert!(ptr == result);
+        unsafe {
+            let _value = *result;
+        }
+    }
+
 }
