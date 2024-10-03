@@ -885,10 +885,6 @@ impl<T: ?Sized> *const T {
     #[rustc_const_stable(feature = "const_pointer_byte_offsets", since = "1.75.0")]
     #[rustc_allow_const_fn_unstable(set_ptr_value)]
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
-    // #[requires(kani::mem::can_dereference(self))]
-    // // TODO: Determine the valid value range for 'count' and update the precondition accordingly.
-    // #[requires(count == 0)] // This precondition is currently a placeholder.
-    // #[ensures(|result| kani::mem::can_dereference(result))]
     pub const unsafe fn byte_add(self, count: usize) -> Self {
         // SAFETY: the caller must uphold the safety contract for `add`.
         unsafe { self.cast::<u8>().add(count).with_metadata_of(self) }
