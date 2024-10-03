@@ -1806,15 +1806,6 @@ mod verify {
     use crate::kani;
 
     #[allow(unused)]
-    // #[kani::proof_for_contract(<*const i32>::offset)]
-    // fn check_offset_i32() {
-    //     let mut test_val: i32 = kani::any();
-    //     let test_ptr: *const i32 = &test_val;
-    //     let offset: isize = kani::any();
-    //     unsafe { 
-    //         test_ptr.offset(offset) 
-    //     };
-    // }
 
     #[kani::proof_for_contract(<*const i32>::offset)]
     fn check_offset_slice_i32(){
