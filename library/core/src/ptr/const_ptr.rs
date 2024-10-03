@@ -277,11 +277,7 @@ impl<T: ?Sized> *const T {
     pub const unsafe fn as_ref<'a>(self) -> Option<&'a T> {
         // SAFETY: the caller must guarantee that `self` is valid
         // for a reference if it isn't null.
-        if self.is_null() {
-            None
-        } else {
-            unsafe { Some(&*self) }
-        }
+        if self.is_null() { None } else { unsafe { Some(&*self) } }
     }
 
     /// Returns a shared reference to the value behind the pointer.
@@ -349,11 +345,7 @@ impl<T: ?Sized> *const T {
     {
         // SAFETY: the caller must guarantee that `self` meets all the
         // requirements for a reference.
-        if self.is_null() {
-            None
-        } else {
-            Some(unsafe { &*(self as *const MaybeUninit<T>) })
-        }
+        if self.is_null() { None } else { Some(unsafe { &*(self as *const MaybeUninit<T>) }) }
     }
 
     /// Adds an offset to a pointer.
@@ -401,7 +393,8 @@ impl<T: ?Sized> *const T {
     #[inline(always)]
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
     #[requires(kani::mem::can_dereference(self))]
-    #[requires(count == 0)]
+    // TODO: Determine the valid value range for 'count' and update the precondition accordingly.
+    #[requires(count == 0)] // This precondition is currently a placeholder.
     #[ensures(|result| kani::mem::can_dereference(result))]
     pub const unsafe fn offset(self, count: isize) -> *const T
     where
@@ -510,9 +503,7 @@ impl<T: ?Sized> *const T {
     #[rustc_const_stable(feature = "const_pointer_byte_offsets", since = "1.75.0")]
     #[rustc_allow_const_fn_unstable(set_ptr_value)]
     pub const fn wrapping_byte_offset(self, count: isize) -> Self {
-        self.cast::<u8>()
-            .wrapping_offset(count)
-            .with_metadata_of(self)
+        self.cast::<u8>().wrapping_offset(count).with_metadata_of(self)
     }
 
     /// Masks out bits of the pointer according to a mask.
@@ -1838,5 +1829,107 @@ mod verify {
             let new_ptr = test_ptr.sub(count);
         }
     }
+  
+     // fn <*const T>::add verification begin
+     macro_rules! generate_add_harness {
+        ($type:ty, $proof_name:ident) => {
+            #[allow(unused)]
+            #[kani::proof_for_contract(<*const $type>::add)]
+            pub fn $proof_name() {
+                let mut test_val: $type = kani::any::<$type>();
+                let test_ptr: *const $type = &test_val;
+                let count: usize = kani::any();
+                unsafe {
+                    test_ptr.add(count);
+                }
+            }
+        };
+    }
+
+    generate_add_harness!(i8, check_add_i8);
+    generate_add_harness!(i16, check_add_i16);
+    generate_add_harness!(i32, check_add_i32);
+    generate_add_harness!(i64, check_add_i64);
+    generate_add_harness!(i128, check_add_i128);
+    generate_add_harness!(isize, check_add_isize);
+    generate_add_harness!(u8, check_add_u8);
+    generate_add_harness!(u16, check_add_u16);
+    generate_add_harness!(u32, check_add_u32);
+    generate_add_harness!(u64, check_add_u64);
+    generate_add_harness!(u128, check_add_u128);
+    generate_add_harness!(usize, check_add_usize);
+    generate_add_harness!((i8, i8), check_add_tuple_1);
+    generate_add_harness!((f64, bool), check_add_tuple_2);
+    generate_add_harness!((i32, f64, bool), check_add_tuple_3);
+    generate_add_harness!((i8, u16, i32, u64, isize), check_add_tuple_4);
+    // fn <*const T>::add verification end
+
+    // fn <*const T>::sub verification begin
+    macro_rules! generate_sub_harness {
+        ($type:ty, $proof_name:ident) => {
+            #[allow(unused)]
+            #[kani::proof_for_contract(<*const $type>::sub)]
+            pub fn $proof_name() {
+                let mut test_val: $type = kani::any::<$type>();
+                let test_ptr: *const $type = &test_val;
+                let count: usize = kani::any();
+                unsafe {
+                    test_ptr.sub(count);
+                }
+            }
+        };
+    }
+
+    generate_sub_harness!(i8, check_sub_i8);
+    generate_sub_harness!(i16, check_sub_i16);
+    generate_sub_harness!(i32, check_sub_i32);
+    generate_sub_harness!(i64, check_sub_i64);
+    generate_sub_harness!(i128, check_sub_i128);
+    generate_sub_harness!(isize, check_sub_isize);
+    generate_sub_harness!(u8, check_sub_u8);
+    generate_sub_harness!(u16, check_sub_u16);
+    generate_sub_harness!(u32, check_sub_u32);
+    generate_sub_harness!(u64, check_sub_u64);
+    generate_sub_harness!(u128, check_sub_u128);
+    generate_sub_harness!(usize, check_sub_usize);
+    generate_sub_harness!((i8, i8), check_sub_tuple_1);
+    generate_sub_harness!((f64, bool), check_sub_tuple_2);
+    generate_sub_harness!((i32, f64, bool), check_sub_tuple_3);
+    generate_sub_harness!((i8, u16, i32, u64, isize), check_sub_tuple_4);
+    // fn <*const T>::sub verification end
+
+    // fn <*const T>::offset verification begin
+    macro_rules! generate_offset_harness {
+        ($type:ty, $proof_name:ident) => {
+            #[allow(unused)]
+            #[kani::proof_for_contract(<*const $type>::offset)]
+            pub fn $proof_name() {
+                let mut test_val: $type = kani::any::<$type>();
+                let test_ptr: *const $type = &test_val;
+                let count: isize = kani::any();
+                unsafe {
+                    test_ptr.offset(count);
+                }
+            }
+        };
+    }
+
+    generate_offset_harness!(i8, check_offset_i8);
+    generate_offset_harness!(i16, check_offset_i16);
+    generate_offset_harness!(i32, check_offset_i32);
+    generate_offset_harness!(i64, check_offset_i64);
+    generate_offset_harness!(i128, check_offset_i128);
+    generate_offset_harness!(isize, check_offset_isize);
+    generate_offset_harness!(u8, check_offset_u8);
+    generate_offset_harness!(u16, check_offset_u16);
+    generate_offset_harness!(u32, check_offset_u32);
+    generate_offset_harness!(u64, check_offset_u64);
+    generate_offset_harness!(u128, check_offset_u128);
+    generate_offset_harness!(usize, check_offset_usize);
+    generate_offset_harness!((i8, i8), check_offset_tuple_1);
+    generate_offset_harness!((f64, bool), check_offset_tuple_2);
+    generate_offset_harness!((i32, f64, bool), check_offset_tuple_3);
+    generate_offset_harness!((i8, u16, i32, u64, isize), check_offset_tuple_4);
+    // fn <*const T>::offset verification end
 
 }
