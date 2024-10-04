@@ -1890,25 +1890,13 @@ mod verify {
     #[allow(unused)]
     #[kani::proof_for_contract(<*const ()>::offset)]
     fn verify_offset_unit() {
-        let mut array: [(); 2] = [(), ()];
-        let ptr: *const () = array.as_ptr();
+        let base: () = ();
+        let ptr: *const () = &base;
+        kani::assume(kani::mem::can_dereference(ptr));
         let result = unsafe { ptr.offset(0) };
+        assert!(kani::mem::can_dereference(result));
         assert!(ptr == result);
-        unsafe {
-            let _value = *result;
-        }
+        
     } 
-
-    #[allow(unused)]
-    #[kani::proof_for_contract(<*const ()>::offset)]
-    fn verify_offset_unit_generic<T: Sized + Default + Copy>() {
-        let mut array: [T; 2] = [T::default(), T::default()];
-        let ptr: *const T = array.as_ptr();
-        let result = unsafe { ptr.offset(0) };
-        assert!(ptr == result);
-        unsafe {
-            let _value = *result;
-        }
-    }
 
 }
