@@ -2234,14 +2234,14 @@ mod verify {
         };
     }
 
-    generate_mut_add_and_sub_harness!((i8, i8), check_add_tuple_1, add);
-    generate_mut_add_and_sub_harness!((f64, bool), check_add_tuple_2, add);
-    generate_mut_add_and_sub_harness!((i32, f64, bool), check_add_tuple_3, add);
-    generate_mut_add_and_sub_harness!((i8, u16, i32, u64, isize), check_add_tuple_4, add);
-    generate_mut_add_and_sub_harness!((i8, i8), check_add_tuple_1, sub);
-    generate_mut_add_and_sub_harness!((f64, bool), check_add_tuple_2, sub);
-    generate_mut_add_and_sub_harness!((i32, f64, bool), check_add_tuple_3, sub);
-    generate_mut_add_and_sub_harness!((i8, u16, i32, u64, isize), check_add_tuple_4, sub);
+    generate_mut_add_and_sub_harness!((i8, i8), check_mut_add_tuple_1, add);
+    generate_mut_add_and_sub_harness!((f64, bool), check_mut_add_tuple_2, add);
+    generate_mut_add_and_sub_harness!((i32, f64, bool), check_mut_add_tuple_3, add);
+    generate_mut_add_and_sub_harness!((i8, u16, i32, u64, isize), check_mut_add_tuple_4, add);
+    generate_mut_add_and_sub_harness!((i8, i8), check_mut_sub_tuple_1, sub);
+    generate_mut_add_and_sub_harness!((f64, bool), check_mut_sub_tuple_2, sub);
+    generate_mut_add_and_sub_harness!((i32, f64, bool), check_mut_sub_tuple_3, sub);
+    generate_mut_add_and_sub_harness!((i8, u16, i32, u64, isize), check_mut_sub_tuple_4, sub);
 
     // fn <*mut T>::offset verification begin
     macro_rules! generate_mut_offset_harness {
@@ -2259,8 +2259,8 @@ mod verify {
         };
     }
 
-    generate_mut_offset_harness!((i8, i8), check_offset_tuple_1);
-    generate_mut_offset_harness!((f64, bool), check_offset_tuple_2);
-    generate_mut_offset_harness!((i32, f64, bool), check_offset_tuple_3);
-    generate_mut_offset_harness!((i8, u16, i32, u64, isize), check_offset_tuple_4);
+    generate_mut_offset_harness!((i8, i8), check_mut_offset_tuple_1);
+    generate_mut_offset_harness!((f64, bool), check_mut_offset_tuple_2);
+    generate_mut_offset_harness!((i32, f64, bool), check_mut_offset_tuple_3);
+    generate_mut_offset_harness!((i8, u16, i32, u64, isize), check_omut_ffset_tuple_4);
 }
