@@ -3,6 +3,10 @@ use crate::cmp::Ordering::{Equal, Greater, Less};
 use crate::intrinsics::const_eval_select;
 use crate::mem::SizedTypeProperties;
 use crate::slice::{self, SliceIndex};
+use safety::{ensures, requires};
+
+#[cfg(kani)]
+use crate::kani;
 
 impl<T: ?Sized> *mut T {
     /// Returns `true` if the pointer is null.
@@ -403,6 +407,10 @@ impl<T: ?Sized> *mut T {
     #[rustc_const_stable(feature = "const_ptr_offset", since = "1.61.0")]
     #[inline(always)]
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
+    #[requires(kani::mem::can_dereference(self))]
+    // TODO: Determine the valid value range for 'count' and update the precondition accordingly.
+    #[requires(count == 0)] // This precondition is currently a placeholder.
+    #[ensures(|result| kani::mem::can_dereference(result))]
     pub const unsafe fn offset(self, count: isize) -> *mut T
     where
         T: Sized,
@@ -947,6 +955,10 @@ impl<T: ?Sized> *mut T {
     #[rustc_const_stable(feature = "const_ptr_offset", since = "1.61.0")]
     #[inline(always)]
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
+    #[requires(kani::mem::can_dereference(self))]
+    // TODO: Determine the valid value range for 'count' and update the precondition accordingly.
+    #[requires(count == 0)] // This precondition is currently a placeholder.
+    #[ensures(|result| kani::mem::can_dereference(result))]
     pub const unsafe fn add(self, count: usize) -> Self
     where
         T: Sized,
@@ -1022,6 +1034,10 @@ impl<T: ?Sized> *mut T {
     #[rustc_allow_const_fn_unstable(unchecked_neg)]
     #[inline(always)]
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
+    #[requires(kani::mem::can_dereference(self))]
+    // TODO: Determine the valid value range for 'count' and update the precondition accordingly.
+    #[requires(count == 0)] // This precondition is currently a placeholder.
+    #[ensures(|result| kani::mem::can_dereference(result))]
     pub const unsafe fn sub(self, count: usize) -> Self
     where
         T: Sized,
@@ -2196,4 +2212,55 @@ impl<T: ?Sized> PartialOrd for *mut T {
     fn ge(&self, other: &*mut T) -> bool {
         *self >= *other
     }
+}
+
+#[cfg(kani)]
+#[unstable(feature = "kani", issue = "none")]
+mod verify {
+    use crate::kani;
+
+    macro_rules! generate_mut_add_and_sub_harness {
+        ($type:ty, $proof_name:ident, $func_name:ident) => {
+            #[allow(unused)]
+            #[kani::proof_for_contract(<*mut $type>::$func_name)]
+            pub fn $proof_name() {
+                let mut test_val: $type = kani::any::<$type>();
+                let test_ptr: *mut $type = &mut test_val;
+                let count: usize = kani::any();
+                unsafe {
+                    test_ptr.$func_name(count);
+                }
+            }
+        };
+    }
+
+    generate_mut_add_and_sub_harness!((i8, i8), check_mut_add_tuple_1, add);
+    generate_mut_add_and_sub_harness!((f64, bool), check_mut_add_tuple_2, add);
+    generate_mut_add_and_sub_harness!((i32, f64, bool), check_mut_add_tuple_3, add);
+    generate_mut_add_and_sub_harness!((i8, u16, i32, u64, isize), check_mut_add_tuple_4, add);
+    generate_mut_add_and_sub_harness!((i8, i8), check_mut_sub_tuple_1, sub);
+    generate_mut_add_and_sub_harness!((f64, bool), check_mut_sub_tuple_2, sub);
+    generate_mut_add_and_sub_harness!((i32, f64, bool), check_mut_sub_tuple_3, sub);
+    generate_mut_add_and_sub_harness!((i8, u16, i32, u64, isize), check_mut_sub_tuple_4, sub);
+
+    // fn <*mut T>::offset verification begin
+    macro_rules! generate_mut_offset_harness {
+        ($type:ty, $proof_name:ident) => {
+            #[allow(unused)]
+            #[kani::proof_for_contract(<*mut $type>::offset)]
+            pub fn $proof_name() {
+                let mut test_val: $type = kani::any::<$type>();
+                let test_ptr: *mut $type = &test_val;
+                let count: isize = kani::any();
+                unsafe {
+                    test_ptr.offset(count);
+                }
+            }
+        };
+    }
+
+    generate_mut_offset_harness!((i8, i8), check_mut_offset_tuple_1);
+    generate_mut_offset_harness!((f64, bool), check_mut_offset_tuple_2);
+    generate_mut_offset_harness!((i32, f64, bool), check_mut_offset_tuple_3);
+    generate_mut_offset_harness!((i8, u16, i32, u64, isize), check_omut_ffset_tuple_4);
 }
