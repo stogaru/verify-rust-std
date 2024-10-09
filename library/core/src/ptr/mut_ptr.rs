@@ -2218,5 +2218,49 @@ impl<T: ?Sized> PartialOrd for *mut T {
 #[unstable(feature = "kani", issue = "none")]
 mod verify {
     use crate::kani;
-    
+
+    macro_rules! generate_mut_add_and_sub_harness {
+        ($type:ty, $proof_name:ident, $func_name:ident) => {
+            #[allow(unused)]
+            #[kani::proof_for_contract(<*mut $type>::$func_name)]
+            pub fn $proof_name() {
+                let mut test_val: $type = kani::any::<$type>();
+                let test_ptr: *mut $type = &mut test_val;
+                let count: usize = kani::any();
+                unsafe {
+                    test_ptr.$func_name(count);
+                }
+            }
+        };
+    }
+
+    generate_mut_add_and_sub_harness!((i8, i8), check_add_tuple_1, add);
+    generate_mut_add_and_sub_harness!((f64, bool), check_add_tuple_2, add);
+    generate_mut_add_and_sub_harness!((i32, f64, bool), check_add_tuple_3, add);
+    generate_mut_add_and_sub_harness!((i8, u16, i32, u64, isize), check_add_tuple_4, add);
+    generate_mut_add_and_sub_harness!((i8, i8), check_add_tuple_1, sub);
+    generate_mut_add_and_sub_harness!((f64, bool), check_add_tuple_2, sub);
+    generate_mut_add_and_sub_harness!((i32, f64, bool), check_add_tuple_3, sub);
+    generate_mut_add_and_sub_harness!((i8, u16, i32, u64, isize), check_add_tuple_4, sub);
+
+    // fn <*mut T>::offset verification begin
+    macro_rules! generate_mut_offset_harness {
+        ($type:ty, $proof_name:ident) => {
+            #[allow(unused)]
+            #[kani::proof_for_contract(<*mut $type>::offset)]
+            pub fn $proof_name() {
+                let mut test_val: $type = kani::any::<$type>();
+                let test_ptr: *mut $type = &test_val;
+                let count: isize = kani::any();
+                unsafe {
+                    test_ptr.offset(count);
+                }
+            }
+        };
+    }
+
+    generate_mut_offset_harness!((i8, i8), check_offset_tuple_1);
+    generate_mut_offset_harness!((f64, bool), check_offset_tuple_2);
+    generate_mut_offset_harness!((i32, f64, bool), check_offset_tuple_3);
+    generate_mut_offset_harness!((i8, u16, i32, u64, isize), check_offset_tuple_4);
 }
