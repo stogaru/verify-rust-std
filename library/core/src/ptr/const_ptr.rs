@@ -1795,15 +1795,29 @@ impl<T: ?Sized> PartialOrd for *const T {
 #[unstable(feature = "kani", issue = "none")]
 mod verify {
     use crate::kani;
-
     #[allow(unused)]
+
+    // macro_rules! generate_add_harness {
+    //     ($type:ty, $proof_name:ident) => {
+    //         #[allow(unused)]
+    //         #[kani::proof_for_contract(<*mut $type>::$func_name)]
+    //         pub fn $proof_name() {
+    //             let mut arr:[type; 5] = kani::Arbitrary::any_array();
+    //             let test_ptr: *const type = arr.as_ptr();
+    //             let count: isize = kani::any();
+    //             unsafe {
+    //                 test_ptr.add(count);
+    //             }
+    //         }
+    //     };
+    // }
 
     #[kani::proof_for_contract(<*const i32>::offset)]
     fn check_offset_slice_i32(){
-        let mut arr: [i32; 5] = kani::any();
-        let test_ptr: *const i32 = arr.as_ptr();
+        let mut arr = [1, 2, 3, 4, 5];  // Example array  
+        let slice = kani::slice::any_slice_of_array_mut(&mut arr);
+        let test_ptr: *const i32 = slice.as_ptr();
         let offset: isize = kani::any();
-
         unsafe{
             let new_ptr = test_ptr.offset(offset);
         }
@@ -1811,7 +1825,7 @@ mod verify {
 
     #[kani::proof_for_contract(<*const i32>::add)]
     fn check_add_slice_i32() {
-        let mut arr: [i32; 5] = kani::any();
+        let mut arr:[i32; 5] = kani::Arbitrary::any_array();
         let test_ptr: *const i32 = arr.as_ptr();
         let count: usize = kani::any();
         unsafe {
@@ -1822,7 +1836,7 @@ mod verify {
 
     #[kani::proof_for_contract(<*const i32>::sub)]
     fn check_sub_slice_i32() {
-        let mut arr: [i32; 5] = kani::any();
+        let mut arr:[i32; 5] = kani::Arbitrary::any_array();
         let test_ptr: *const i32 = arr.as_ptr();
         let count: usize = kani::any();
         unsafe {
