@@ -2243,9 +2243,39 @@ mod verify {
     generate_mut_add_and_sub_harness!((i32, f64, bool), check_mut_sub_tuple_3, sub);
     generate_mut_add_and_sub_harness!((i8, u16, i32, u64, isize), check_mut_sub_tuple_4, sub);
 
+    // fn <*mut T>::add verification begin
+     macro_rules! generate_add_harness {
+        ($type:ty, $proof_name:ident) => {
+            #[allow(unused)]
+            #[kani::proof_for_contract(<*mut $type>::add)]
+            pub fn $proof_name() {
+                let mut test_val: $type = kani::any::<$type>();
+                let test_ptr: *mut $type = &mut test_val;
+                let count: usize = kani::any();
+                unsafe {
+                    test_ptr.add(count);
+                }
+            }
+        };
+    }
+
+    generate_add_harness!(i8, check_mut_add_i8);
+    generate_add_harness!(i16, check_mut_add_i16);
+    generate_add_harness!(i32, check_mut_add_i32);
+    generate_add_harness!(i64, check_mut_add_i64);
+    generate_add_harness!(i128, check_mut_add_i128);
+    generate_add_harness!(isize, check_mut_add_isize);
+    generate_add_harness!(u8, check_mut_add_u8);
+    generate_add_harness!(u16, check_mut_add_u16);
+    generate_add_harness!(u32, check_mut_add_u32);
+    generate_add_harness!(u64, check_mut_add_u64);
+    generate_add_harness!(u128, check_mut_add_u128);
+    generate_add_harness!(usize, check_mut_add_usize);    
+  
+  
     // fn <*mut T>::offset verification begin
     macro_rules! generate_mut_offset_harness {
-        ($type:ty, $proof_name:ident) => {
+      ($type:ty, $proof_name:ident) => {
             #[allow(unused)]
             #[kani::proof_for_contract(<*mut $type>::offset)]
             pub fn $proof_name() {
@@ -2258,9 +2288,94 @@ mod verify {
             }
         };
     }
-
+          
     generate_mut_offset_harness!((i8, i8), check_mut_offset_tuple_1);
     generate_mut_offset_harness!((f64, bool), check_mut_offset_tuple_2);
     generate_mut_offset_harness!((i32, f64, bool), check_mut_offset_tuple_3);
     generate_mut_offset_harness!((i8, u16, i32, u64, isize), check_omut_ffset_tuple_4);
+  
+    // fn <*mut T>::sub verification begin
+    macro_rules! generate_sub_harness {
+        ($type:ty, $proof_name:ident) => {
+            #[allow(unused)]
+            #[kani::proof_for_contract(<*mut $type>::sub)]
+             pub fn $proof_name() {
+                let mut test_val: $type = kani::any::<$type>();
+                let test_ptr: *mut $type = &mut test_val;
+                let count: usize = kani::any();
+                unsafe {
+                    test_ptr.sub(count);
+                }
+            }
+        };
+    }
+
+    generate_sub_harness!(i8, check_mut_sub_i8);
+    generate_sub_harness!(i16, check_mut_sub_i16);
+    generate_sub_harness!(i32, check_mut_sub_i32);
+    generate_sub_harness!(i64, check_mut_sub_i64);
+    generate_sub_harness!(i128, check_mut_sub_i128);
+    generate_sub_harness!(isize, check_mut_sub_isize);
+    generate_sub_harness!(u8, check_mut_sub_u8);
+    generate_sub_harness!(u16, check_mut_sub_u16);
+    generate_sub_harness!(u32, check_mut_sub_u32);
+    generate_sub_harness!(u64, check_mut_sub_u64);
+    generate_sub_harness!(u128, check_mut_sub_u128);
+    generate_sub_harness!(usize, check_mut_sub_usize);
+
+    // fn <*mut T>::offset verification begin
+    macro_rules! generate_offset_harness {
+        ($type:ty, $proof_name:ident) => {
+            #[allow(unused)]
+            #[kani::proof_for_contract(<*mut $type>::offset)]
+            pub fn $proof_name() {
+                let mut test_val: $type = kani::any::<$type>();
+                let test_ptr: *mut $type = &mut test_val;
+                let count: isize = kani::any();
+                unsafe {
+                    test_ptr.offset(count);
+                }
+            }
+        };
+    }
+    generate_offset_harness!(i8, check_mut_offset_i8);
+    generate_offset_harness!(i16, check_mut_offset_i16);
+    generate_offset_harness!(i32, check_mut_offset_i32);
+    generate_offset_harness!(i64, check_mut_offset_i64);
+    generate_offset_harness!(i128, check_mut_offset_i128);
+    generate_offset_harness!(isize, check_mut_offset_isize);
+    generate_offset_harness!(u8, check_mut_offset_u8);
+    generate_offset_harness!(u16, check_mut_offset_u16);
+    generate_offset_harness!(u32, check_mut_offset_u32);
+    generate_offset_harness!(u64, check_mut_offset_u64);
+    generate_offset_harness!(u128, check_mut_offset_u128);
+    generate_offset_harness!(usize, check_mut_offset_usize);
+
+    macro_rules! generate_unit_harness {
+        ($fn_name:ident, $proof_name:ident) => {
+            #[allow(unused)]
+            #[kani::proof_for_contract(<*mut ()>::$fn_name)]
+            pub fn $proof_name() {
+                let mut test_val: () = ();
+                let test_ptr: *mut () = &mut test_val;
+                let count: usize = kani::any();
+                unsafe {
+                    test_ptr.$fn_name(count);
+                }
+            }
+        };
+    }
+    generate_unit_harness!(add, check_mut_add_unit);
+    generate_unit_harness!(sub, check_mut_sub_unit);
+
+    #[allow(unused)]
+    #[kani::proof_for_contract(<*mut ()>::offset)]
+    pub fn check_mut_offset_unit() {
+        let mut test_val: () = ();
+        let test_ptr: *mut () = &mut test_val;
+        let count: isize = kani::any();
+        unsafe {
+            test_ptr.offset(count);
+        }
+    }
 }
