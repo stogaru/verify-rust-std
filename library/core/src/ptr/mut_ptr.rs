@@ -2219,7 +2219,31 @@ impl<T: ?Sized> PartialOrd for *mut T {
 mod verify {
     use crate::kani;
 
-     // fn <*mut T>::add verification begin
+    macro_rules! generate_mut_add_and_sub_harness {
+        ($type:ty, $proof_name:ident, $func_name:ident) => {
+            #[allow(unused)]
+            #[kani::proof_for_contract(<*mut $type>::$func_name)]
+            pub fn $proof_name() {
+                let mut test_val: $type = kani::any::<$type>();
+                let test_ptr: *mut $type = &mut test_val;
+                let count: usize = kani::any();
+                unsafe {
+                    test_ptr.$func_name(count);
+                }
+            }
+        };
+    }
+
+    generate_mut_add_and_sub_harness!((i8, i8), check_mut_add_tuple_1, add);
+    generate_mut_add_and_sub_harness!((f64, bool), check_mut_add_tuple_2, add);
+    generate_mut_add_and_sub_harness!((i32, f64, bool), check_mut_add_tuple_3, add);
+    generate_mut_add_and_sub_harness!((i8, u16, i32, u64, isize), check_mut_add_tuple_4, add);
+    generate_mut_add_and_sub_harness!((i8, i8), check_mut_sub_tuple_1, sub);
+    generate_mut_add_and_sub_harness!((f64, bool), check_mut_sub_tuple_2, sub);
+    generate_mut_add_and_sub_harness!((i32, f64, bool), check_mut_sub_tuple_3, sub);
+    generate_mut_add_and_sub_harness!((i8, u16, i32, u64, isize), check_mut_sub_tuple_4, sub);
+
+    // fn <*mut T>::add verification begin
      macro_rules! generate_add_harness {
         ($type:ty, $proof_name:ident) => {
             #[allow(unused)]
@@ -2247,14 +2271,35 @@ mod verify {
     generate_add_harness!(u64, check_mut_add_u64);
     generate_add_harness!(u128, check_mut_add_u128);
     generate_add_harness!(usize, check_mut_add_usize);    
-    // fn <*mut T>::add verification end
-
+  
+  
+    // fn <*mut T>::offset verification begin
+    macro_rules! generate_mut_offset_harness {
+      ($type:ty, $proof_name:ident) => {
+            #[allow(unused)]
+            #[kani::proof_for_contract(<*mut $type>::offset)]
+            pub fn $proof_name() {
+                let mut test_val: $type = kani::any::<$type>();
+                let test_ptr: *mut $type = &test_val;
+                let count: isize = kani::any();
+                unsafe {
+                    test_ptr.offset(count);
+                }
+            }
+        };
+    }
+          
+    generate_mut_offset_harness!((i8, i8), check_mut_offset_tuple_1);
+    generate_mut_offset_harness!((f64, bool), check_mut_offset_tuple_2);
+    generate_mut_offset_harness!((i32, f64, bool), check_mut_offset_tuple_3);
+    generate_mut_offset_harness!((i8, u16, i32, u64, isize), check_omut_ffset_tuple_4);
+  
     // fn <*mut T>::sub verification begin
     macro_rules! generate_sub_harness {
         ($type:ty, $proof_name:ident) => {
             #[allow(unused)]
             #[kani::proof_for_contract(<*mut $type>::sub)]
-            pub fn $proof_name() {
+             pub fn $proof_name() {
                 let mut test_val: $type = kani::any::<$type>();
                 let test_ptr: *mut $type = &mut test_val;
                 let count: usize = kani::any();
@@ -2276,8 +2321,7 @@ mod verify {
     generate_sub_harness!(u32, check_mut_sub_u32);
     generate_sub_harness!(u64, check_mut_sub_u64);
     generate_sub_harness!(u128, check_mut_sub_u128);
-    generate_sub_harness!(usize, check_mut_sub_usize);    
-    // fn <*mut T>::sub verification end
+    generate_sub_harness!(usize, check_mut_sub_usize);
 
     // fn <*mut T>::offset verification begin
     macro_rules! generate_offset_harness {
@@ -2294,7 +2338,6 @@ mod verify {
             }
         };
     }
-
     generate_offset_harness!(i8, check_mut_offset_i8);
     generate_offset_harness!(i16, check_mut_offset_i16);
     generate_offset_harness!(i32, check_mut_offset_i32);
@@ -2307,7 +2350,6 @@ mod verify {
     generate_offset_harness!(u64, check_mut_offset_u64);
     generate_offset_harness!(u128, check_mut_offset_u128);
     generate_offset_harness!(usize, check_mut_offset_usize);
-    // fn <*mut T>::offset verification end
 
     macro_rules! generate_unit_harness {
         ($fn_name:ident, $proof_name:ident) => {
