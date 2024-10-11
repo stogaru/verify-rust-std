@@ -2309,4 +2309,31 @@ mod verify {
     generate_offset_harness!(usize, check_mut_offset_usize);
     // fn <*mut T>::offset verification end
 
+    macro_rules! generate_unit_harness {
+        ($fn_name:ident, $proof_name:ident) => {
+            #[allow(unused)]
+            #[kani::proof_for_contract(<*mut ()>::$fn_name)]
+            pub fn $proof_name() {
+                let mut test_val: () = ();
+                let test_ptr: *mut () = &mut test_val;
+                let count: usize = kani::any();
+                unsafe {
+                    test_ptr.$fn_name(count);
+                }
+            }
+        };
+    }
+    generate_unit_harness!(add, check_mut_add_unit);
+    generate_unit_harness!(sub, check_mut_sub_unit);
+
+    #[allow(unused)]
+    #[kani::proof_for_contract(<*mut ()>::offset)]
+    pub fn check_mut_offset_unit() {
+        let mut test_val: () = ();
+        let test_ptr: *mut () = &mut test_val;
+        let count: isize = kani::any();
+        unsafe {
+            test_ptr.offset(count);
+        }
+    }
 }
