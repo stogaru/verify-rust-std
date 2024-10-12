@@ -2218,7 +2218,6 @@ impl<T: ?Sized> PartialOrd for *mut T {
 #[unstable(feature = "kani", issue = "none")]
 mod verify {
     use crate::kani;
-    #[allow(unused)]
 
     macro_rules! generate_mut_add_and_sub_harness {
         ($type:ty, $proof_name:ident, $func_name:ident) => {
