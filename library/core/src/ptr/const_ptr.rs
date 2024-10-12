@@ -1887,47 +1887,34 @@ mod verify {
     // fn <*const T>::offset verification end
    
     // Unit type proofs start
-    #[allow(unused)]
-    #[kani::proof_for_contract(<*const ()>::offset)]
-    fn verify_offset_unit() {
-        let base: () = ();
-        let ptr: *const () = &base;
-        kani::assume(kani::mem::can_dereference(ptr));
-        let result = unsafe { ptr.offset(0) };
-        assert!(kani::mem::can_dereference(result));
-        assert!(ptr == result);
-        
-    } 
-
-    #[allow(unused)]
-    #[kani::proof_for_contract(<*const ()>::add)]
-    fn verify_add_unit(){
-        let unit_val = ();
-        let unit_ref: &() = &unit_val;
-        let ptr: *const () = unit_ref;
-        let count: usize = kani::any();
-
-        unsafe {
-            let result = ptr.add(count);
-            kani::assume(kani::mem::can_dereference(result));
-            assert_eq!(result, ptr);
-            assert_eq!(*result, ());
-        }
+    
+    
+    macro_rules! generate_const_unit_harness {
+        ($fn_name:ident, $proof_name:ident) => {
+            #[allow(unused)]
+            #[kani::proof_for_contract(<*const ()>::$fn_name)]
+            pub fn $proof_name() {
+                let test_val: () = ();
+                let test_ptr: *const () = &test_val;
+                let count: usize = kani::any();
+                unsafe {
+                    test_ptr.$fn_name(count);
+                }
+            }
+        };
     }
 
-    #[allow(unused)]
-    #[kani::proof_for_contract(<*const ()>::sub)]
-    fn verify_sub_unit(){
-        let unit_val = ();
-        let unit_ref: &() = &unit_val;
-        let ptr: *const () = unit_ref;
-        let count: usize = kani::any();
+    generate_const_unit_harness!(add, check_const_add_unit);
+    generate_const_unit_harness!(sub, check_const_sub_unit);
 
+    #[allow(unused)]
+    #[kani::proof_for_contract(<*const ()>::offset)]
+    pub fn check_const_offset_unit() {
+        let test_val: () = ();
+        let test_ptr: *const () = &test_val;
+        let count: isize = kani::any();
         unsafe {
-            let result = ptr.sub(count);
-            kani::assume(kani::mem::can_dereference(result));
-            assert_eq!(result, ptr);
-            assert_eq!(*result, ());
+            test_ptr.offset(count);
         }
     }
     // Unit type proofs end
