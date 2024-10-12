@@ -2218,10 +2218,10 @@ impl<T: ?Sized> PartialOrd for *mut T {
 #[unstable(feature = "kani", issue = "none")]
 mod verify {
     use crate::kani;
+    #[allow(unused)]
 
     macro_rules! generate_mut_add_and_sub_harness {
         ($type:ty, $proof_name:ident, $func_name:ident) => {
-            #[allow(unused)]
             #[kani::proof_for_contract(<*mut $type>::$func_name)]
             pub fn $proof_name() {
                 let mut test_val: $type = kani::any::<$type>();
@@ -2284,7 +2284,6 @@ mod verify {
     // fn <*mut T>::offset verification begin
     macro_rules! generate_mut_offset_harness {
       ($type:ty, $proof_name:ident) => {
-            #[allow(unused)]
             #[kani::proof_for_contract(<*mut $type>::offset)]
             pub fn $proof_name() {
                 let mut test_val: $type = kani::any::<$type>();
