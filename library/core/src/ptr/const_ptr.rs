@@ -1796,6 +1796,38 @@ impl<T: ?Sized> PartialOrd for *const T {
 mod verify {
     use crate::kani;
 
+    #[kani::proof_for_contract(<*const i32>::offset)]
+    fn check_offset_slice_i32(){
+        let mut arr: [i32; 5] = kani::any();
+        let test_ptr: *const i32 = arr.as_ptr();
+        let offset: isize = kani::any();
+
+        unsafe{
+            let new_ptr = test_ptr.offset(offset);
+        }
+    }
+
+    #[kani::proof_for_contract(<*const i32>::add)]
+    fn check_add_slice_i32() {
+        let mut arr: [i32; 5] = kani::any();
+        let test_ptr: *const i32 = arr.as_ptr();
+        let count: usize = kani::any();
+        unsafe {
+            let new_ptr = test_ptr.add(count);
+        }
+    }
+
+
+    #[kani::proof_for_contract(<*const i32>::sub)]
+    fn check_sub_slice_i32() {
+        let mut arr: [i32; 5] = kani::any();
+        let test_ptr: *const i32 = arr.as_ptr();
+        let count: usize = kani::any();
+        unsafe {
+            let new_ptr = test_ptr.sub(count);
+        }
+    }
+  
      // fn <*const T>::add verification begin
      macro_rules! generate_add_harness {
         ($type:ty, $proof_name:ident) => {
@@ -1823,8 +1855,12 @@ mod verify {
     generate_add_harness!(u32, check_add_u32);
     generate_add_harness!(u64, check_add_u64);
     generate_add_harness!(u128, check_add_u128);
-    generate_add_harness!(usize, check_add_usize);    
-    // fn <*const T>::add verification end
+    generate_add_harness!(usize, check_add_usize);
+    generate_add_harness!((i8, i8), check_add_tuple_1);
+    generate_add_harness!((f64, bool), check_add_tuple_2);
+    generate_add_harness!((i32, f64, bool), check_add_tuple_3);
+    generate_add_harness!((i8, u16, i32, u64, isize), check_add_tuple_4);
+    generate_add_harness!((), check_add_unit);
 
     // fn <*const T>::sub verification begin
     macro_rules! generate_sub_harness {
@@ -1853,8 +1889,12 @@ mod verify {
     generate_sub_harness!(u32, check_sub_u32);
     generate_sub_harness!(u64, check_sub_u64);
     generate_sub_harness!(u128, check_sub_u128);
-    generate_sub_harness!(usize, check_sub_usize);    
-    // fn <*const T>::sub verification end
+    generate_sub_harness!(usize, check_sub_usize);
+    generate_sub_harness!((i8, i8), check_sub_tuple_1);
+    generate_sub_harness!((f64, bool), check_sub_tuple_2);
+    generate_sub_harness!((i32, f64, bool), check_sub_tuple_3);
+    generate_sub_harness!((i8, u16, i32, u64, isize), check_sub_tuple_4);
+    generate_sub_harness!((), check_sub_unit);
 
     // fn <*const T>::offset verification begin
     macro_rules! generate_offset_harness {
@@ -1884,40 +1924,9 @@ mod verify {
     generate_offset_harness!(u64, check_offset_u64);
     generate_offset_harness!(u128, check_offset_u128);
     generate_offset_harness!(usize, check_offset_usize);
-    // fn <*const T>::offset verification end
-   
-    // Unit type proofs start
-    
-    
-    macro_rules! generate_const_unit_harness {
-        ($fn_name:ident, $proof_name:ident) => {
-            #[allow(unused)]
-            #[kani::proof_for_contract(<*const ()>::$fn_name)]
-            pub fn $proof_name() {
-                let test_val: () = ();
-                let test_ptr: *const () = &test_val;
-                let count: usize = kani::any();
-                unsafe {
-                    test_ptr.$fn_name(count);
-                }
-            }
-        };
-    }
-
-    generate_const_unit_harness!(add, check_const_add_unit);
-    generate_const_unit_harness!(sub, check_const_sub_unit);
-
-    #[allow(unused)]
-    #[kani::proof_for_contract(<*const ()>::offset)]
-    pub fn check_const_offset_unit() {
-        let test_val: () = ();
-        let test_ptr: *const () = &test_val;
-        let count: isize = kani::any();
-        unsafe {
-            test_ptr.offset(count);
-        }
-    }
-    // Unit type proofs end
-
-
+    generate_offset_harness!((i8, i8), check_offset_tuple_1);
+    generate_offset_harness!((f64, bool), check_offset_tuple_2);
+    generate_offset_harness!((i32, f64, bool), check_offset_tuple_3);
+    generate_offset_harness!((i8, u16, i32, u64, isize), check_offset_tuple_4);
+    generate_offset_harness!((), check_offset_unit);
 }
