@@ -1796,8 +1796,6 @@ impl<T: ?Sized> PartialOrd for *const T {
 mod verify {
     use crate::kani;
 
-    #[allow(unused)]
-
     #[kani::proof_for_contract(<*const i32>::offset)]
     fn check_offset_slice_i32(){
         let mut arr: [i32; 5] = kani::any();
@@ -1862,7 +1860,7 @@ mod verify {
     generate_add_harness!((f64, bool), check_add_tuple_2);
     generate_add_harness!((i32, f64, bool), check_add_tuple_3);
     generate_add_harness!((i8, u16, i32, u64, isize), check_add_tuple_4);
-    // fn <*const T>::add verification end
+    generate_add_harness!((), check_add_unit);
 
     // fn <*const T>::sub verification begin
     macro_rules! generate_sub_harness {
@@ -1896,7 +1894,7 @@ mod verify {
     generate_sub_harness!((f64, bool), check_sub_tuple_2);
     generate_sub_harness!((i32, f64, bool), check_sub_tuple_3);
     generate_sub_harness!((i8, u16, i32, u64, isize), check_sub_tuple_4);
-    // fn <*const T>::sub verification end
+    generate_sub_harness!((), check_sub_unit);
 
     // fn <*const T>::offset verification begin
     macro_rules! generate_offset_harness {
@@ -1930,6 +1928,5 @@ mod verify {
     generate_offset_harness!((f64, bool), check_offset_tuple_2);
     generate_offset_harness!((i32, f64, bool), check_offset_tuple_3);
     generate_offset_harness!((i8, u16, i32, u64, isize), check_offset_tuple_4);
-    // fn <*const T>::offset verification end
-
+    generate_offset_harness!((), check_offset_unit);
 }
