@@ -408,9 +408,8 @@ impl<T: ?Sized> *mut T {
     #[inline(always)]
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
     #[requires(kani::mem::can_dereference(self))]
-    // TODO: Determine the valid value range for 'count' and update the precondition accordingly.
-    #[requires(count == 0)] // This precondition is currently a placeholder.
-    #[ensures(|result| kani::mem::can_dereference(result))]
+    #[requires(count.checked_mul(core::mem::size_of::<T>() as isize).is_some())]
+    #[ensures(|result| kani::mem::same_allocation(self as *const T, *result as *const T) && kani::mem::can_dereference(result))]
     pub const unsafe fn offset(self, count: isize) -> *mut T
     where
         T: Sized,
@@ -956,9 +955,9 @@ impl<T: ?Sized> *mut T {
     #[inline(always)]
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
     #[requires(kani::mem::can_dereference(self))]
-    // TODO: Determine the valid value range for 'count' and update the precondition accordingly.
-    #[requires(count == 0)] // This precondition is currently a placeholder.
-    #[ensures(|result| kani::mem::can_dereference(result))]
+    #[requires(count.checked_mul(core::mem::size_of::<T>()).is_some()
+        && count * core::mem::size_of::<T>() <= isize::MAX as usize)]
+    #[ensures(|result| kani::mem::same_allocation(self as *const T, *result as *const T) && kani::mem::can_dereference(result))]
     pub const unsafe fn add(self, count: usize) -> Self
     where
         T: Sized,
@@ -1035,9 +1034,9 @@ impl<T: ?Sized> *mut T {
     #[inline(always)]
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
     #[requires(kani::mem::can_dereference(self))]
-    // TODO: Determine the valid value range for 'count' and update the precondition accordingly.
-    #[requires(count == 0)] // This precondition is currently a placeholder.
-    #[ensures(|result| kani::mem::can_dereference(result))]
+    #[requires(count.checked_mul(core::mem::size_of::<T>()).is_some()
+        && count * core::mem::size_of::<T>() <= isize::MAX as usize)]
+    #[ensures(|result| kani::mem::same_allocation(self as *const T, *result as *const T) && kani::mem::can_dereference(result))]
     pub const unsafe fn sub(self, count: usize) -> Self
     where
         T: Sized,
@@ -2220,17 +2219,52 @@ mod verify {
     use crate::kani;
 
     macro_rules! generate_mut_add_and_sub_harness {
-        ($type:ty, $proof_name:ident, $func_name:ident) => {
-            #[kani::proof_for_contract(<*mut $type>::$func_name)]
+        ($type:ty, $proof_name:ident, add) => {
+            #[kani::proof_for_contract(<*mut $type>::add)]
             pub fn $proof_name() {
                 let mut test_val: $type = kani::any::<$type>();
+                let offset: usize = kani::any();
+                let count: usize = kani::any();                
+                if(core::mem::size_of::<$type>() == 0) { // unit type
+                    kani::assume(offset == 0);
+                    kani::assume(count == 0);
+                } else {
+                    kani::assume(offset == 0 || offset == 1);
+                    kani::assume(count == 0 || count == 1);
+                    kani::assume(offset + count <= 1);
+                } 
+                
                 let test_ptr: *mut $type = &mut test_val;
-                let count: usize = kani::any();
+                let ptr_with_offset: *mut $type = test_ptr.wrapping_add(offset);                
+                
                 unsafe {
-                    test_ptr.$func_name(count);
+                    ptr_with_offset.add(count);
                 }
             }
         };
+        ($type:ty, $proof_name:ident, sub) => {
+            #[kani::proof_for_contract(<*mut $type>::sub)]
+            pub fn $proof_name() {
+                let mut test_val: $type = kani::any::<$type>();
+                let offset: usize = kani::any();
+                let count: usize = kani::any();
+                if(core::mem::size_of::<$type>() == 0) { // unit type
+                    kani::assume(offset == 0);
+                    kani::assume(count == 0);
+                } else {
+                    kani::assume(offset == 0 || offset == 1);
+                    kani::assume(count == 0 || count == 1); 
+                    kani::assume(count <= offset);
+                }
+                
+                let test_ptr: *mut $type = &mut test_val;
+                let ptr_with_offset: *mut $type = test_ptr.wrapping_add(offset);
+                
+                unsafe {
+                    ptr_with_offset.sub(count);
+                }
+            }
+        }
     }
 
     // <*mut T>:: add() integer types verification
@@ -2287,9 +2321,20 @@ mod verify {
             pub fn $proof_name() {
                 let mut test_val: $type = kani::any::<$type>();
                 let test_ptr: *mut $type = &mut test_val;
+                let offset: usize = kani::any();
                 let count: isize = kani::any();
+                if(core::mem::size_of::<$type>() == 0) { // unit type
+                    kani::assume(offset == 0);
+                    kani::assume(count == 0);
+                } else {
+                    kani::assume(offset == 0 || offset == 1);
+                    kani::assume(count == 0 || count == 1);
+                    kani::assume(offset as isize + count == 0 || offset as isize + count == 1);    
+                }
+                let ptr_with_offset: *mut $type = test_ptr.wrapping_add(offset);
+                
                 unsafe {
-                    test_ptr.offset(count);
+                    ptr_with_offset.offset(count);
                 }
             }
         };
