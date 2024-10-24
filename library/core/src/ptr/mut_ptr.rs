@@ -803,6 +803,11 @@ impl<T: ?Sized> *mut T {
     #[rustc_const_stable(feature = "const_ptr_offset_from", since = "1.65.0")]
     #[inline(always)]
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
+    #[requires(kani::mem::same_allocation(self, origin))]
+    #[requires((self as usize).checked_sub(origin as usize).is_some() && (self as usize - origin as usize) % (mem::size_of::<T>() as usize) == 0)]
+    #[ensures(|result|
+        *result == ((self as usize - origin as usize) / (mem::size_of::<T>() as usize)) as isize
+    )]
     pub const unsafe fn offset_from(self, origin: *const T) -> isize
     where
         T: Sized,
