@@ -3,6 +3,10 @@ use crate::cmp::Ordering::{Equal, Greater, Less};
 use crate::intrinsics::const_eval_select;
 use crate::mem::SizedTypeProperties;
 use crate::slice::{self, SliceIndex};
+use safety::{ensures, requires};
+
+#[cfg(kani)]
+use crate::kani;
 
 impl<T: ?Sized> *const T {
     /// Returns `true` if the pointer is null.
@@ -621,6 +625,14 @@ impl<T: ?Sized> *const T {
     #[rustc_const_stable(feature = "const_ptr_offset_from", since = "1.65.0")]
     #[inline]
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
+    #[requires(kani::mem::same_allocation(self, origin))]
+    #[requires(
+        (self as usize).checked_sub(origin as usize).is_some() &&
+        (self as usize - origin as usize) % (mem::size_of::<T>() as usize) == 0
+    )]
+    #[ensures(|result| 
+        *result == ((self as usize - origin as usize) / (mem::size_of::<T>() as usize)) as isize
+    )]
     pub const unsafe fn offset_from(self, origin: *const T) -> isize
     where
         T: Sized,
@@ -1772,5 +1784,35 @@ impl<T: ?Sized> PartialOrd for *const T {
     #[allow(ambiguous_wide_pointer_comparisons)]
     fn ge(&self, other: &*const T) -> bool {
         *self >= *other
+    }
+}
+
+#[cfg(kani)]
+#[unstable(feature = "kani", issue = "none")]
+mod verify {
+    use crate::kani;
+    use kani::{PointerGenerator};
+
+    #[kani::proof_for_contract(<*const u32>::offset_from)]
+    pub fn check_const_offset_from_u32() {
+        let mut val: u32 = kani::any::<u32>();
+        let ptr: *const u32 = &mut val;
+        let offset = kani::any_where(|b: &usize| *b <= size_of::<u32>());
+        let src_ptr: *const u32 = unsafe { ptr.add(offset) };
+        let offset = kani::any_where(|b: &usize| *b <= size_of::<u32>());
+        let dest_ptr: *const u32 = unsafe { ptr.add(offset) };
+        unsafe {
+            dest_ptr.offset_from(src_ptr);
+        }
+    }
+
+    #[kani::proof_for_contract(<*const u32>::offset_from)]
+    pub fn check_const_offset_from_u32_pg() {
+        let mut generator = PointerGenerator::<4>::new();
+        let origin_ptr: *const u32 = generator.any_alloc_status::<u32>().ptr;
+        let dest_ptr: *const u32 = generator.any_alloc_status::<u32>().ptr;
+        unsafe {
+            origin_ptr.offset_from(dest_ptr);
+        }
     }
 }
