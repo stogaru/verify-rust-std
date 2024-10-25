@@ -1861,38 +1861,6 @@ mod verify {
     generate_pointer_harnesses!((f64, bool), check_offset_slice_tuple_2, check_add_slice_tuple_2, check_sub_slice_tuple_2);
     generate_pointer_harnesses!((i32, f64, bool), check_offset_slice_tuple_3, check_add_slice_tuple_3, check_sub_slice_tuple_3);
     generate_pointer_harnesses!((i8, u16, i32, u64, isize), check_offset_slice_tuple_4, check_add_slice_tuple_4, check_sub_slice_tuple_4);
-
-    #[kani::proof_for_contract(<*const i32>::offset)]
-    fn check_offset_slice_i32(){
-        let mut arr: [i32; 5] = kani::any();
-        let test_ptr: *const i32 = arr.as_ptr();
-        let offset: isize = kani::any();
-
-        unsafe{
-            let new_ptr = test_ptr.offset(offset);
-        }
-    }
-
-    #[kani::proof_for_contract(<*const i32>::add)]
-    fn check_add_slice_i32() {
-        let mut arr: [i32; 5] = kani::any();
-        let test_ptr: *const i32 = arr.as_ptr();
-        let count: usize = kani::any();
-        unsafe {
-            let new_ptr = test_ptr.add(count);
-        }
-    }
-
-
-    #[kani::proof_for_contract(<*const i32>::sub)]
-    fn check_sub_slice_i32() {
-        let mut arr: [i32; 5] = kani::any();
-        let test_ptr: *const i32 = arr.as_ptr();
-        let count: usize = kani::any();
-        unsafe {
-            let new_ptr = test_ptr.sub(count);
-        }
-    }
   
      // fn <*const T>::add verification begin
      macro_rules! generate_add_harness {
