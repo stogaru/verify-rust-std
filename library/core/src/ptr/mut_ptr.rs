@@ -3,6 +3,10 @@ use crate::cmp::Ordering::{Equal, Greater, Less};
 use crate::intrinsics::const_eval_select;
 use crate::mem::SizedTypeProperties;
 use crate::slice::{self, SliceIndex};
+use safety::{ensures, requires};
+
+#[cfg(kani)]
+
 
 impl<T: ?Sized> *mut T {
     /// Returns `true` if the pointer is null.
@@ -2201,4 +2205,36 @@ impl<T: ?Sized> PartialOrd for *mut T {
     fn ge(&self, other: &*mut T) -> bool {
         *self >= *other
     }
+
+}
+
+#[cfg(kani)]
+#[unstable(feature = "kani", issue = "none")]
+mod verify {
+    use crate::kani;
+    use kani::{PointerGenerator};
+
+    #[kani::proof_for_contract(<*mut u32>::offset_from)]
+    pub fn check_mut_offset_from_u32() {
+        let mut val: u32 = kani::any::<u32>();
+        let ptr: *mut u32 = &mut val;
+        let offset = kani::any_where(|b: &usize| *b <= size_of::<u32>());
+        let src_ptr: *mut u32 = unsafe { ptr.add(offset) };
+        let offset = kani::any_where(|b: &usize| *b <= size_of::<u32>());
+        let dest_ptr: *mut u32 = unsafe { ptr.add(offset) };
+        unsafe {
+            dest_ptr.offset_from(src_ptr);
+        }
+    }
+
+    #[kani::proof_for_contract(<*mut u32>::offset_from)]
+    pub fn check_mut_offset_from_u32_pg() {
+        let mut generator = PointerGenerator::<4>::new();
+        let origin_ptr: *mut u32 = generator.any_alloc_status::<u32>().ptr;
+        let dest_ptr: *mut u32 = generator.any_alloc_status::<u32>().ptr;
+        unsafe {
+            origin_ptr.offset_from(dest_ptr);
+        }
+    }
+
 }
