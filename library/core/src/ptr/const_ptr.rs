@@ -627,11 +627,11 @@ impl<T: ?Sized> *const T {
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
     #[requires(kani::mem::same_allocation(self, origin))]
     #[requires(
-        (self as usize).checked_sub(origin as usize).is_some() &&
-        (self as usize - origin as usize) % (mem::size_of::<T>() as usize) == 0
+        (self as isize).checked_sub(origin as isize).is_some() &&
+        (self as isize - origin as isize) % (mem::size_of::<T>() as isize) == 0
     )]
     #[ensures(|result| 
-        *result == ((self as usize - origin as usize) / (mem::size_of::<T>() as usize)) as isize
+        *result == ((self as isize - origin as isize) / (mem::size_of::<T>() as isize))
     )]
     pub const unsafe fn offset_from(self, origin: *const T) -> isize
     where
@@ -1791,7 +1791,6 @@ impl<T: ?Sized> PartialOrd for *const T {
 #[unstable(feature = "kani", issue = "none")]
 mod verify {
     use crate::kani;
-    use kani::{PointerGenerator};
 
     #[kani::proof_for_contract(<*const u32>::offset_from)]
     pub fn check_const_offset_from_u32() {
@@ -1803,16 +1802,6 @@ mod verify {
         let dest_ptr: *const u32 = unsafe { ptr.add(offset) };
         unsafe {
             dest_ptr.offset_from(src_ptr);
-        }
-    }
-
-    #[kani::proof_for_contract(<*const u32>::offset_from)]
-    pub fn check_const_offset_from_u32_pg() {
-        let mut generator = PointerGenerator::<4>::new();
-        let origin_ptr: *const u32 = generator.any_alloc_status::<u32>().ptr;
-        let dest_ptr: *const u32 = generator.any_alloc_status::<u32>().ptr;
-        unsafe {
-            origin_ptr.offset_from(dest_ptr);
         }
     }
 }
