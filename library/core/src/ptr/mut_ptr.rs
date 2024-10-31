@@ -409,9 +409,9 @@ impl<T: ?Sized> *mut T {
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
     #[requires(
         count.checked_mul(core::mem::size_of::<T>() as isize).is_some() &&
-        kani::mem::same_allocation(self, self.wrapping_offset(count))
+        ((core::mem::size_of::<T>() == 0) || (kani::mem::same_allocation(self, self.wrapping_offset(count))))
     )]
-    #[ensures(|result| kani::mem::same_allocation(self as *const T, *result as *const T))]
+    #[ensures(|result| (core::mem::size_of::<T>() == 0) || kani::mem::same_allocation(self as *const T, *result as *const T))]
     pub const unsafe fn offset(self, count: isize) -> *mut T
     where
         T: Sized,
@@ -959,9 +959,9 @@ impl<T: ?Sized> *mut T {
     #[requires(
             count.checked_mul(core::mem::size_of::<T>()).is_some() &&
             count * core::mem::size_of::<T>() <= isize::MAX as usize &&
-            kani::mem::same_allocation(self, self.wrapping_add(count))
+            ((core::mem::size_of::<T>() == 0) || (kani::mem::same_allocation(self, self.wrapping_add(count))))
     )]
-    #[ensures(|result| kani::mem::same_allocation(self as *const T, *result as *const T))]
+    #[ensures(|result| (core::mem::size_of::<T>() == 0) || kani::mem::same_allocation(self as *const T, *result as *const T))]
     pub const unsafe fn add(self, count: usize) -> Self
     where
         T: Sized,
@@ -1040,9 +1040,9 @@ impl<T: ?Sized> *mut T {
     #[requires(
         count.checked_mul(core::mem::size_of::<T>()).is_some() &&
         count * core::mem::size_of::<T>() <= isize::MAX as usize &&
-        kani::mem::same_allocation(self, self.wrapping_sub(count))
+        ((core::mem::size_of::<T>() == 0) || (kani::mem::same_allocation(self, self.wrapping_sub(count))))
     )]
-    #[ensures(|result| kani::mem::same_allocation(self as *const T, *result as *const T))]
+    #[ensures(|result| (core::mem::size_of::<T>() == 0) || kani::mem::same_allocation(self as *const T, *result as *const T))]
     pub const unsafe fn sub(self, count: usize) -> Self
     where
         T: Sized,
@@ -2293,7 +2293,7 @@ mod verify {
     generate_mut_arithmetic_harness!(usize, check_mut_add_usize, add);   
 
     // <*mut T>:: add() unit type verification
-    // generate_mut_arithmetic_harness!((), check_mut_add_unit, add);
+    generate_mut_arithmetic_harness!((), check_mut_add_unit, add);
 
     // <*mut T>:: add() composite types verification
     generate_mut_arithmetic_harness!((i8, i8), check_mut_add_tuple_1, add);
@@ -2316,7 +2316,7 @@ mod verify {
     generate_mut_arithmetic_harness!(usize, check_mut_sub_usize, sub);
 
     // <*mut T>:: sub() unit type verification
-    // generate_mut_arithmetic_harness!((), check_mut_sub_unit, sub);
+    generate_mut_arithmetic_harness!((), check_mut_sub_unit, sub);
 
     // <*mut T>:: sub() composite types verification
     generate_mut_arithmetic_harness!((i8, i8), check_mut_sub_tuple_1, sub);
@@ -2339,7 +2339,7 @@ mod verify {
     generate_mut_arithmetic_harness!(usize, check_mut_offset_usize, offset);
 
     // fn <*mut T>::offset() unit type verification
-    // generate_mut_arithmetic_harness!((), check_mut_offset_unit, offset);
+    generate_mut_arithmetic_harness!((), check_mut_offset_unit, offset);
 
     // fn <*mut T>::offset() composite type verification
     generate_mut_arithmetic_harness!((i8, i8), check_mut_offset_tuple_1, offset);
