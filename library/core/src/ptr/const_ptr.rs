@@ -625,14 +625,13 @@ impl<T: ?Sized> *const T {
     #[rustc_const_stable(feature = "const_ptr_offset_from", since = "1.65.0")]
     #[inline]
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
-    #[requires(kani::mem::same_allocation(self, origin))]
     #[requires(
+        (mem::size_of::<T>() != 0) &&
         (self as isize).checked_sub(origin as isize).is_some() &&
-        (self as isize - origin as isize) % (mem::size_of::<T>() as isize) == 0
+        (self as isize - origin as isize) % (mem::size_of::<T>() as isize) == 0 &&
+        kani::mem::same_allocation(self, origin)
     )]
-    #[ensures(|result| 
-        *result == ((self as isize - origin as isize) / (mem::size_of::<T>() as isize))
-    )]
+    #[ensures(|result| *result == (self as isize - origin as isize) / (mem::size_of::<T>() as isize))]
     pub const unsafe fn offset_from(self, origin: *const T) -> isize
     where
         T: Sized,
@@ -1792,16 +1791,55 @@ impl<T: ?Sized> PartialOrd for *const T {
 mod verify {
     use crate::kani;
 
-    #[kani::proof_for_contract(<*const u32>::offset_from)]
-    pub fn check_const_offset_from_u32() {
-        let mut val: u32 = kani::any::<u32>();
-        let ptr: *const u32 = &mut val;
-        let offset = kani::any_where(|b: &usize| *b <= size_of::<u32>());
-        let src_ptr: *const u32 = unsafe { ptr.add(offset) };
-        let offset = kani::any_where(|b: &usize| *b <= size_of::<u32>());
-        let dest_ptr: *const u32 = unsafe { ptr.add(offset) };
+    #[kani::proof_for_contract(<*const ()>::offset_from)]
+    pub fn check_const_offset_from_unit() {
+        let val: () = ();
+        let src_ptr: *const () = &val;
+        let dest_ptr: *const () = &val;
         unsafe {
             dest_ptr.offset_from(src_ptr);
         }
     }
+
+    macro_rules! generate_offset_from_harness {
+        ($type: ty, $proof_name: ident) => {
+            #[kani::proof_for_contract(<*const $type>::offset_from)]
+            pub fn $proof_name() {
+                let val: $type = kani::any::<$type>();
+                let ptr: *const $type = &val;
+
+                let offset: usize = kani::any_where(|x| *x <= 1);
+                let src_ptr: *const $type = unsafe { ptr.add(offset) };
+
+                let offset: usize = kani::any_where(|x| *x <= 1);
+                let dest_ptr: *const $type = unsafe { ptr.add(offset) };
+
+                unsafe {
+                    dest_ptr.offset_from(src_ptr);
+                }
+            }
+        };
+    }
+
+    generate_offset_from_harness!(u8, check_const_offset_from_u8);
+    generate_offset_from_harness!(u16, check_const_offset_from_u16);
+    generate_offset_from_harness!(u32, check_const_offset_from_u32);
+    generate_offset_from_harness!(u64, check_const_offset_from_u64);
+    generate_offset_from_harness!(u128, check_const_offset_from_u128);
+    generate_offset_from_harness!(usize, check_const_offset_from_usize);
+
+    generate_offset_from_harness!(i8, check_const_offset_from_i8);
+    generate_offset_from_harness!(i16, check_const_offset_from_i16);
+    generate_offset_from_harness!(i32, check_const_offset_from_i32);
+    generate_offset_from_harness!(i64, check_const_offset_from_i64);
+    generate_offset_from_harness!(i128, check_const_offset_from_i128);
+    generate_offset_from_harness!(isize, check_const_offset_from_isize);
+
+    generate_offset_from_harness!((i8, i8), check_const_offset_from_tuple_1);
+    generate_offset_from_harness!((f64, bool), check_const_offset_from_tuple_2);
+    generate_offset_from_harness!((u32, i16, f32), check_const_offset_from_tuple_3);
+    generate_offset_from_harness!(
+        ((), bool, u8, u16, i32, f64, i128, usize),
+        check_const_offset_from_tuple_4
+    );
 }
