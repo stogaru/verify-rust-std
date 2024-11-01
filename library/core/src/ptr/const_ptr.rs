@@ -1811,8 +1811,13 @@ mod verify {
                 let offset: usize = kani::any_where(|x| *x <= 1);
                 let src_ptr: *const $type = unsafe { ptr.add(offset) };
 
-                let offset: usize = kani::any_where(|x| *x <= 1);
-                let dest_ptr: *const $type = unsafe { ptr.add(offset) };
+                let dest_ptr: *const $type = if kani::any() {
+                    let offset: usize = kani::any_where(|x| *x <= 1);
+                    unsafe { ptr.add(offset) }
+                } else {
+                    let val2: $type = kani::any::<$type>();
+                    &val2
+                };
 
                 unsafe {
                     dest_ptr.offset_from(src_ptr);
