@@ -409,6 +409,7 @@ impl<T: ?Sized> *mut T {
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
     #[requires(
         count.checked_mul(core::mem::size_of::<T>() as isize).is_some() &&
+        (self as isize).checked_add((count * core::mem::size_of::<T>() as isize)).is_some() &&
         ((core::mem::size_of::<T>() == 0) || (kani::mem::same_allocation(self, self.wrapping_offset(count))))
     )]
     #[ensures(|result| (core::mem::size_of::<T>() == 0) || kani::mem::same_allocation(self as *const T, *result as *const T))]
@@ -959,6 +960,7 @@ impl<T: ?Sized> *mut T {
     #[requires(
             count.checked_mul(core::mem::size_of::<T>()).is_some() &&
             count * core::mem::size_of::<T>() <= isize::MAX as usize &&
+            (self as isize).checked_add((count * core::mem::size_of::<T>()) as isize).is_some() &&
             ((core::mem::size_of::<T>() == 0) || (kani::mem::same_allocation(self, self.wrapping_add(count))))
     )]
     #[ensures(|result| (core::mem::size_of::<T>() == 0) || kani::mem::same_allocation(self as *const T, *result as *const T))]
@@ -1040,6 +1042,7 @@ impl<T: ?Sized> *mut T {
     #[requires(
         count.checked_mul(core::mem::size_of::<T>()).is_some() &&
         count * core::mem::size_of::<T>() <= isize::MAX as usize &&
+        (self as isize).checked_sub((count * core::mem::size_of::<T>()) as isize).is_some() &&
         ((core::mem::size_of::<T>() == 0) || (kani::mem::same_allocation(self, self.wrapping_sub(count))))
     )]
     #[ensures(|result| (core::mem::size_of::<T>() == 0) || kani::mem::same_allocation(self as *const T, *result as *const T))]
@@ -2232,8 +2235,8 @@ mod verify {
                 let offset: usize = kani::any();
                 let count: usize = kani::any();                
                 kani::assume(offset <= 1);
-                kani::assume(count <= 1);
-                kani::assume(offset + count <= 1);
+                // kani::assume(count <= 1);
+                // kani::assume(offset + count <= 1);
                 
                 let test_ptr: *mut $type = &mut test_val;
                 let ptr_with_offset: *mut $type = test_ptr.wrapping_add(offset);                   
@@ -2249,8 +2252,8 @@ mod verify {
                 let offset: usize = kani::any();
                 let count: usize = kani::any();
                 kani::assume(offset <= 1);
-                kani::assume(count <= 1); 
-                kani::assume(count <= offset);
+                // kani::assume(count <= 1); 
+                // kani::assume(count <= offset);
                 
                 let test_ptr: *mut $type = &mut test_val;
                 let ptr_with_offset: *mut $type = test_ptr.wrapping_add(offset);
@@ -2266,8 +2269,8 @@ mod verify {
                 let offset: usize = kani::any();
                 let count: isize = kani::any();
                 kani::assume(offset <= 1);
-                kani::assume(count >= -1 && count <= 1);
-                kani::assume(offset as isize + count >= 0 && offset as isize + count <= 1);    
+                // kani::assume(count >= -1 && count <= 1);
+                // kani::assume(offset as isize + count >= 0 && offset as isize + count <= 1);    
 
                 let test_ptr: *mut $type = &mut test_val;
                 let ptr_with_offset: *mut $type = test_ptr.wrapping_add(offset);                
