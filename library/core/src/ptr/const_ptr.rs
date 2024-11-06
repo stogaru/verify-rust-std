@@ -626,7 +626,7 @@ impl<T: ?Sized> *const T {
     #[inline]
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
     #[requires(
-        (mem::size_of::<T>() != 0) &&
+        (mem::size_of::<T>() != 0) && // offset_from requires pointee size to be greater than 0
         (self as isize).checked_sub(origin as isize).is_some() &&
         (self as isize - origin as isize) % (mem::size_of::<T>() as isize) == 0 &&
         kani::mem::same_allocation(self, origin)
@@ -1790,6 +1790,7 @@ impl<T: ?Sized> PartialOrd for *const T {
 #[unstable(feature = "kani", issue = "none")]
 mod verify {
     use crate::kani;
+    use core::mem;
 
     #[kani::proof_for_contract(<*const ()>::offset_from)]
     pub fn check_const_offset_from_unit() {
@@ -1808,19 +1809,21 @@ mod verify {
                 let val: $type = kani::any::<$type>();
                 let ptr: *const $type = &val;
 
-                let offset: usize = kani::any_where(|x| *x <= 1);
-                let src_ptr: *const $type = unsafe { ptr.add(offset) };
-
+                // offset the src pointer within the allocation bounds non-deterministically
+                let offset: usize = kani::any_where(|x| *x <= mem::size_of::<$type>());
+                let src_ptr: *const $type = unsafe { ptr.byte_add(offset) };
+                
+                // generate the dest ptr non-deterministically with same or different provenance. 
                 let dest_ptr: *const $type = if kani::any() {
-                    let offset: usize = kani::any_where(|x| *x <= 1);
-                    unsafe { ptr.add(offset) }
+                    let offset: usize = kani::any_where(|x| *x <= mem::size_of::<$type>());
+                    unsafe { ptr.byte_add(offset) }
                 } else {
                     let val2: $type = kani::any::<$type>();
                     &val2
                 };
 
                 unsafe {
-                    dest_ptr.offset_from(src_ptr);
+                    src_ptr.offset_from(dest_ptr);
                 }
             }
         };
