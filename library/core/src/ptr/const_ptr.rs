@@ -1812,9 +1812,12 @@ mod verify {
             fn $offset_fn() {
                 let arr: [$ty; ARRAY_SIZE] = kani::Arbitrary::any_array();
                 let test_ptr: *const $ty = arr.as_ptr();
-                let offset: isize = kani::any();
+                let offset: usize = kani::any();
+                let count: isize = kani::any();
+                kani::assume(offset <= ARRAY_SIZE);
+                let ptr_with_offset: *const $ty = test_ptr.wrapping_byte_add(offset);                
                 unsafe {
-                    let new_ptr = test_ptr.offset(offset);
+                    ptr_with_offset.offset(count);
                 }
             }
 
@@ -1823,9 +1826,12 @@ mod verify {
             fn $add_fn() {
                 let arr: [$ty; ARRAY_SIZE] = kani::Arbitrary::any_array();
                 let test_ptr: *const $ty = arr.as_ptr();
+                let offset: usize = kani::any();
                 let count: usize = kani::any();
+                kani::assume(offset <= ARRAY_SIZE);
+                let ptr_with_offset: *const $ty = test_ptr.wrapping_byte_add(offset);                
                 unsafe {
-                    let new_ptr = test_ptr.add(count);
+                    ptr_with_offset.add(count);
                 }
             }
 
@@ -1834,9 +1840,12 @@ mod verify {
             fn $sub_fn() {
                 let arr: [$ty; ARRAY_SIZE] = kani::Arbitrary::any_array();
                 let test_ptr: *const $ty = arr.as_ptr();
+                let offset: usize = kani::any();
                 let count: usize = kani::any();
+                kani::assume(offset <= ARRAY_SIZE);
+                let ptr_with_offset: *const $ty = test_ptr.wrapping_byte_add(offset);                
                 unsafe {
-                    let new_ptr = test_ptr.sub(count);
+                    ptr_with_offset.sub(count);
                 }
             }
         };
