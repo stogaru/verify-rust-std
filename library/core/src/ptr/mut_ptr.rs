@@ -2251,6 +2251,7 @@ impl<T: ?Sized> PartialOrd for *mut T {
 mod verify {
     use crate::kani;
 
+    // generate proof for contracts for integer type, composite type and unit type pointers
     macro_rules! generate_mut_arithmetic_harness {
         ($type:ty, $proof_name:ident, add) => {
             #[kani::proof_for_contract(<*mut $type>::add)]
@@ -2258,9 +2259,11 @@ mod verify {
                 let mut test_val: $type = kani::any::<$type>();
                 let offset: usize = kani::any();
                 let count: usize = kani::any();                
-                kani::assume(offset <= 1);
-                
                 let test_ptr: *mut $type = &mut test_val;
+
+                // For integer, composite, and unit types, 1 is the largest offset that
+                // keeps `ptr_with_offset` within bounds.
+                kani::assume(offset <= 1); 
                 let ptr_with_offset: *mut $type = test_ptr.wrapping_add(offset);                   
                 unsafe {
                     ptr_with_offset.add(count);
@@ -2273,9 +2276,11 @@ mod verify {
                 let mut test_val: $type = kani::any::<$type>();
                 let offset: usize = kani::any();
                 let count: usize = kani::any();
-                kani::assume(offset <= 1);
-                
                 let test_ptr: *mut $type = &mut test_val;
+                
+                // For integer, composite, and unit types, 1 is the largest offset that
+                // keeps `ptr_with_offset` within bounds.
+                kani::assume(offset <= 1);
                 let ptr_with_offset: *mut $type = test_ptr.wrapping_add(offset);
                 unsafe {
                     ptr_with_offset.sub(count);
@@ -2288,9 +2293,11 @@ mod verify {
                 let mut test_val: $type = kani::any::<$type>();
                 let offset: usize = kani::any();
                 let count: isize = kani::any();
-                kani::assume(offset <= 1);
-
                 let test_ptr: *mut $type = &mut test_val;
+
+                // For integer, composite, and unit types, 1 is the largest offset that
+                // keeps `ptr_with_offset` within bounds.
+                kani::assume(offset <= 1);
                 let ptr_with_offset: *mut $type = test_ptr.wrapping_add(offset);                
                 unsafe {
                     ptr_with_offset.offset(count);
