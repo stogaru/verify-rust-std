@@ -3,6 +3,10 @@ use crate::cmp::Ordering::{Equal, Greater, Less};
 use crate::intrinsics::const_eval_select;
 use crate::mem::SizedTypeProperties;
 use crate::slice::{self, SliceIndex};
+use safety::{ensures, requires};
+
+#[cfg(kani)]
+use crate::kani;
 
 impl<T: ?Sized> *const T {
     /// Returns `true` if the pointer is null.
@@ -621,6 +625,13 @@ impl<T: ?Sized> *const T {
     #[rustc_const_stable(feature = "const_ptr_offset_from", since = "1.65.0")]
     #[inline]
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
+    #[requires(
+        (mem::size_of::<T>() != 0) && // offset_from requires pointee size to be greater than 0
+        (self as isize).checked_sub(origin as isize).is_some() &&
+        (self as isize - origin as isize) % (mem::size_of::<T>() as isize) == 0 &&
+        kani::mem::same_allocation(self, origin)
+    )]
+    #[ensures(|result| *result == (self as isize - origin as isize) / (mem::size_of::<T>() as isize))]
     pub const unsafe fn offset_from(self, origin: *const T) -> isize
     where
         T: Sized,
@@ -1773,4 +1784,57 @@ impl<T: ?Sized> PartialOrd for *const T {
     fn ge(&self, other: &*const T) -> bool {
         *self >= *other
     }
+}
+
+#[cfg(kani)]
+#[unstable(feature = "kani", issue = "none")]
+mod verify {
+    use crate::kani;
+    use core::mem;
+
+    const ARRAY_SIZE: usize = 5;
+
+    macro_rules! generate_offset_from_harnesses_for_slices {
+
+        ($type:ty, $proof_name:ident) => {
+            #[kani::proof_for_contract(<*const $type>::offset_from)]
+            fn $proof_name() {
+                let arr1: [$type; ARRAY_SIZE] = kani::Arbitrary::any_array();
+                let arr2: [$type; ARRAY_SIZE] = kani::Arbitrary::any_array();
+                let len_arr_bytes: usize = mem::size_of::<$type>() * ARRAY_SIZE;
+
+                let ptr_arr1: *const $type = arr1.as_ptr();
+                let mut offset: usize = kani::any_where(|x| *x <= len_arr_bytes );
+                let src_ptr: *const $type = ptr_arr1.wrapping_byte_add(offset);
+
+                offset = kani::any_where(|x| *x <= len_arr_bytes);
+    
+                let dest_ptr: *const $type = if kani::any() {
+                    ptr_arr1.wrapping_byte_add(offset)
+                } else {
+                    arr2.as_ptr().wrapping_byte_add(offset) as *const $type
+                };
+
+                unsafe {
+                    src_ptr.offset_from(dest_ptr);
+                }
+            }
+        }
+
+    }
+
+    generate_offset_from_harnesses_for_slices!(i8, check_offset_from_slice_i8);
+    generate_offset_from_harnesses_for_slices!(i16, check_offset_from_slice_i16);
+    generate_offset_from_harnesses_for_slices!(i32, check_offset_from_slice_i32);
+    generate_offset_from_harnesses_for_slices!(i64, check_offset_from_slice_i64);
+    generate_offset_from_harnesses_for_slices!(i128, check_offset_from_slice_i128);
+    generate_offset_from_harnesses_for_slices!(isize, check_offset_from_slice_isize);
+    generate_offset_from_harnesses_for_slices!(u8, check_offset_from_slice_u8);
+    generate_offset_from_harnesses_for_slices!(u16, check_offset_from_slice_u16);
+    generate_offset_from_harnesses_for_slices!(u32, check_offset_from_slice_u32);
+    generate_offset_from_harnesses_for_slices!(u64, check_offset_from_slice_u64);
+    generate_offset_from_harnesses_for_slices!(u128, check_offset_from_slice_u128);
+    generate_offset_from_harnesses_for_slices!(usize, check_offset_from_slice_usize);
+    generate_offset_from_harnesses_for_slices!(bool, check_offset_from_slice_bool);
+    generate_offset_from_harnesses_for_slices!((), check_offset_from_slice_unit);
 }
