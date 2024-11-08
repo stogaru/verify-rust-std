@@ -3,6 +3,9 @@ use crate::cmp::Ordering::{Equal, Greater, Less};
 use crate::intrinsics::const_eval_select;
 use crate::mem::SizedTypeProperties;
 use crate::slice::{self, SliceIndex};
+use safety::{ensures, requires};
+
+#[cfg(kani)]
 
 impl<T: ?Sized> *mut T {
     /// Returns `true` if the pointer is null.
@@ -798,11 +801,19 @@ impl<T: ?Sized> *mut T {
     /// unsafe {
     ///     let one = ptr2_other.offset_from(ptr2); // Undefined Behavior! ⚠️
     /// }
-    /// ```
+    /// ```S
     #[stable(feature = "ptr_offset_from", since = "1.47.0")]
     #[rustc_const_stable(feature = "const_ptr_offset_from", since = "1.65.0")]
     #[inline(always)]
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
+    #[requires(
+   
+        (mem::size_of::<T>() != 0) &&
+        (self as isize).checked_sub(origin as isize).is_some() &&
+        (self as isize - origin as isize) % (mem::size_of::<T>() as isize) == 0 &&
+        kani::mem::same_allocation(self, origin)
+    )]
+    #[ensures(|result| *result == (self as isize - origin as isize) / (mem::size_of::<T>() as isize))]
     pub const unsafe fn offset_from(self, origin: *const T) -> isize
     where
         T: Sized,
@@ -2196,4 +2207,65 @@ impl<T: ?Sized> PartialOrd for *mut T {
     fn ge(&self, other: &*mut T) -> bool {
         *self >= *other
     }
+}
+
+#[cfg(kani)]
+#[unstable(feature = "kani", issue = "none")]
+mod verify {
+    use crate::kani;
+    use kani::{PointerGenerator};
+
+    #[kani::proof_for_contract(<*mut ()>::offset_from)]
+    pub fn check_mut_offset_from_unit() {
+        let mut val: () = ();
+        let src_ptr: *mut () = &mut val;
+        let dest_ptr: *mut () = &mut val;
+        unsafe {
+            dest_ptr.offset_from(src_ptr);
+        }
+    }
+
+    macro_rules! generate_offset_from_harness {
+        ($type: ty, $proof_name: ident) => {
+            #[kani::proof_for_contract(<*mut $type>::offset_from)]
+            pub fn $proof_name() {
+                let mut val: $type = kani::any::<$type>();
+                let ptr: *mut $type = &mut val;
+
+                let offset: usize = kani::any_where(|x| *x <= 1);
+                let src_ptr: *mut $type = unsafe { ptr.add(offset) };
+                let offset: usize = kani::any_where(|x| *x <= 1);
+                let dest_ptr: *mut $type = unsafe { ptr.add(offset) };
+
+                unsafe {
+                    dest_ptr.offset_from(src_ptr);
+                }
+
+
+            }
+        };
+    }
+
+    generate_offset_from_harness!(u8, check_mut_offset_from_u8);
+    generate_offset_from_harness!(u16, check_mut_offset_from_u16);
+    generate_offset_from_harness!(u32, check_mut_offset_from_u32);
+    generate_offset_from_harness!(u64, check_mut_offset_from_u64);
+    generate_offset_from_harness!(u128, check_mut_offset_from_u128);
+    generate_offset_from_harness!(usize, check_mut_offset_from_usize);
+
+    generate_offset_from_harness!(i8, check_mut_offset_from_i8);
+    generate_offset_from_harness!(i16, check_mut_offset_from_i16);
+    generate_offset_from_harness!(i32, check_mut_offset_from_i32);
+    generate_offset_from_harness!(i64, check_mut_offset_from_i64);
+    generate_offset_from_harness!(i128, check_mut_offset_from_i128);
+    generate_offset_from_harness!(isize, check_mut_offset_from_isize);
+
+    generate_offset_from_harness!((i8, i8), check_mut_offset_from_tuple_1);
+    generate_offset_from_harness!((f64, bool), check_mut_offset_from_tuple_2);
+    generate_offset_from_harness!((u32, i16, f32), check_mut_offset_from_tuple_3);
+    generate_offset_from_harness!(
+        ((), bool, u8, u16, i32, f64, i128, usize),
+        check_mut_offset_from_tuple_4
+    );
+
 }
