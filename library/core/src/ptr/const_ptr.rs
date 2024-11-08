@@ -672,7 +672,6 @@ impl<T: ?Sized> *const T {
     #[inline]
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
     #[requires(
-        (mem::size_of::<T>() != 0) && // offset_from requires pointee size to be greater than 0
         (self as isize).checked_sub(origin as isize).is_some() &&
         (self as isize - origin as isize) % (mem::size_of::<T>() as isize) == 0 &&
         (self as isize == origin as isize || kani::mem::same_allocation(self, origin))
@@ -1915,9 +1914,11 @@ impl<T: ?Sized> PartialOrd for *const T {
 #[unstable(feature = "kani", issue = "none")]
 mod verify {
     use crate::kani;
+    use kani::PointerGenerator;
     use core::mem;
 
     #[kani::proof_for_contract(<*const ()>::offset_from)]
+    #[kani::should_panic]
     pub fn check_const_offset_from_unit() {
         let val: () = ();
         let src_ptr: *const () = &val;
@@ -1931,25 +1932,18 @@ mod verify {
         ($type: ty, $proof_name: ident) => {
             #[kani::proof_for_contract(<*const $type>::offset_from)]
             pub fn $proof_name() {
-                let val1: $type = kani::any::<$type>();
-                let val2: $type = kani::any::<$type>();
-                let ptr1: *const $type = &val1;
-                let ptr2: *const $type = &val2;
-
-                // offset the src pointer within the allocation bounds non-deterministically
-                let mut offset: usize = kani::any_where(|x| *x <= mem::size_of::<$type>());
-                let src_ptr: *const $type = ptr1.wrapping_byte_add(offset);
-
-                offset = kani::any_where(|x| *x <= mem::size_of::<$type>());
-                // generate the dest ptr non-deterministically with same or different provenance 
-                let dest_ptr: *const $type = if kani::any() {
-                    ptr1.wrapping_byte_add(offset)
+                const gen_size: usize = mem::size_of::<$type>();
+                let mut generator1 = PointerGenerator::<gen_size>::new();
+                let mut generator2 = PointerGenerator::<gen_size>::new();
+                let ptr1: *const $type = generator1.any_in_bounds().ptr;
+                let ptr2: *const $type = if kani::any() {
+                    generator1.any_alloc_status().ptr
                 } else {
-                    ptr2.wrapping_byte_add(offset)
+                    generator2.any_alloc_status().ptr
                 };
 
                 unsafe {
-                    src_ptr.offset_from(dest_ptr);
+                    ptr1.offset_from(ptr2);
                 }
             }
         };
@@ -1986,21 +1980,24 @@ mod verify {
             fn $proof_name() {
                 let arr1: [$type; ARRAY_SIZE] = kani::Arbitrary::any_array();
                 let arr2: [$type; ARRAY_SIZE] = kani::Arbitrary::any_array();
-                let len_arr_bytes: usize = mem::size_of::<$type>() * ARRAY_SIZE;
 
-                let ptr_arr1: *const $type = arr1.as_ptr();
+                let slice1 = kani::slice::any_slice_of_array(&arr1);
+                let slice2 = kani::slice::any_slice_of_array(&arr2);
+
+                let ptr1: *const $type = slice1.as_ptr();
+                let ptr2: *const $type = slice2.as_ptr();
 
                 // Non-deterministically offset the pointer within the allocated object
-                let mut offset: usize = kani::any_where(|x| *x <= len_arr_bytes );
-                let src_ptr: *const $type = ptr_arr1.wrapping_byte_add(offset);
+                let mut offset: usize = kani::any_where(|x| *x <= slice1.len() * mem::size_of::<$type>());
+                let src_ptr: *const $type = ptr1.wrapping_byte_add(offset);
 
-                offset = kani::any_where(|x| *x <= len_arr_bytes);
-                
                 // Non-deterministically generate pointer of same or different provenance
                 let dest_ptr: *const $type = if kani::any() {
-                    ptr_arr1.wrapping_byte_add(offset)
+                    offset = kani::any_where(|x| *x <= slice1.len() * mem::size_of::<$type>());
+                    ptr1.wrapping_byte_add(offset)
                 } else {
-                    arr2.as_ptr().wrapping_byte_add(offset) as *const $type
+                    offset = kani::any_where(|x| *x <= slice2.len() * mem::size_of::<$type>());
+                    ptr2.wrapping_byte_add(offset)
                 };
 
                 unsafe {
@@ -2010,18 +2007,17 @@ mod verify {
         }
     }
 
-    generate_offset_from_harnesses_for_slices!(i8, check_offset_from_slice_i8);
-    generate_offset_from_harnesses_for_slices!(i16, check_offset_from_slice_i16);
-    generate_offset_from_harnesses_for_slices!(i32, check_offset_from_slice_i32);
-    generate_offset_from_harnesses_for_slices!(i64, check_offset_from_slice_i64);
-    generate_offset_from_harnesses_for_slices!(i128, check_offset_from_slice_i128);
-    generate_offset_from_harnesses_for_slices!(isize, check_offset_from_slice_isize);
-    generate_offset_from_harnesses_for_slices!(u8, check_offset_from_slice_u8);
-    generate_offset_from_harnesses_for_slices!(u16, check_offset_from_slice_u16);
-    generate_offset_from_harnesses_for_slices!(u32, check_offset_from_slice_u32);
-    generate_offset_from_harnesses_for_slices!(u64, check_offset_from_slice_u64);
-    generate_offset_from_harnesses_for_slices!(u128, check_offset_from_slice_u128);
-    generate_offset_from_harnesses_for_slices!(usize, check_offset_from_slice_usize);
-    generate_offset_from_harnesses_for_slices!(bool, check_offset_from_slice_bool);
-    generate_offset_from_harnesses_for_slices!((), check_offset_from_slice_unit);
+    generate_offset_from_harnesses_for_slices!(i8, check_const_offset_from_slice_i8);
+    generate_offset_from_harnesses_for_slices!(i16, check_const_offset_from_slice_i16);
+    generate_offset_from_harnesses_for_slices!(i32, check_const_offset_from_slice_i32);
+    generate_offset_from_harnesses_for_slices!(i64, check_const_offset_from_slice_i64);
+    generate_offset_from_harnesses_for_slices!(i128, check_const_offset_from_slice_i128);
+    generate_offset_from_harnesses_for_slices!(isize, check_const_offset_from_slice_isize);
+    generate_offset_from_harnesses_for_slices!(u8, check_const_offset_from_slice_u8);
+    generate_offset_from_harnesses_for_slices!(u16, check_const_offset_from_slice_u16);
+    generate_offset_from_harnesses_for_slices!(u32, check_const_offset_from_slice_u32);
+    generate_offset_from_harnesses_for_slices!(u64, check_const_offset_from_slice_u64);
+    generate_offset_from_harnesses_for_slices!(u128, check_const_offset_from_slice_u128);
+    generate_offset_from_harnesses_for_slices!(usize, check_const_offset_from_slice_usize);
+    generate_offset_from_harnesses_for_slices!(bool, check_const_offset_from_slice_bool);
 }
