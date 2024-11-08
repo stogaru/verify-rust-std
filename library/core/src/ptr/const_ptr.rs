@@ -1902,12 +1902,7 @@ mod verify {
     generate_slice_harnesses!((f64, bool), check_offset_slice_tuple_2, check_add_slice_tuple_2, check_sub_slice_tuple_2);
     generate_slice_harnesses!((i32, f64, bool), check_offset_slice_tuple_3, check_add_slice_tuple_3, check_sub_slice_tuple_3);
     generate_slice_harnesses!((i8, u16, i32, u64, isize), check_offset_slice_tuple_4, check_add_slice_tuple_4, check_sub_slice_tuple_4);
-  
-     // fn <*const T>::add verification begin
-     macro_rules! generate_add_harness {
-        ($type:ty, $proof_name:ident) => {
-            #[allow(unused)]
-
+    
     // generate proof for contracts for integer type, composite type and unit type pointers
     macro_rules! generate_const_arithmetic_harness {
         ($type:ty, $proof_name:ident, add) => {
