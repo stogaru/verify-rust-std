@@ -1828,16 +1828,16 @@ impl<T: ?Sized> PartialOrd for *const T {
 mod verify {
     use crate::kani;
     use core::mem;
-    // Constant for array size used in all tests
+    // Constant for array size used in all tests, for performance reason
     const ARRAY_SIZE: usize = 5;
 
     /// This macro generates verification harnesses for the `offset`, `add`, and `sub`
-    /// pointer operations for a specific type and function name.
+    /// pointer operations for a slice type and function name.
     /// - `$ty`: The type of the array (e.g., i32, u32, tuples).
     /// - `$offset_fn`: The function name for the `offset` operation.
     /// - `$add_fn`: The function name for the `add` operation.
     /// - `$sub_fn`: The function name for the `sub` operation.
-    macro_rules! generate_pointer_harnesses {
+    macro_rules! generate_slice_harnesses {
         ($ty:ty, $offset_fn:ident, $add_fn:ident, $sub_fn:ident) => {
             // Generates a harness for the `offset` operation
             #[kani::proof_for_contract(<*const $ty>::offset)]
@@ -1884,24 +1884,24 @@ mod verify {
     }
 
     // Generate pointer harnesses for various types (offset, add, sub)
-    generate_pointer_harnesses!(i8, check_offset_slice_i8, check_add_slice_i8, check_sub_slice_i8);
-    generate_pointer_harnesses!(i16, check_offset_slice_i16, check_add_slice_i16, check_sub_slice_i16);
-    generate_pointer_harnesses!(i32, check_offset_slice_i32, check_add_slice_i32, check_sub_slice_i32);
-    generate_pointer_harnesses!(i64, check_offset_slice_i64, check_add_slice_i64, check_sub_slice_i64);
-    generate_pointer_harnesses!(i128, check_offset_slice_i128, check_add_slice_i128, check_sub_slice_i128);
-    generate_pointer_harnesses!(isize, check_offset_slice_isize, check_add_slice_isize, check_sub_slice_isize);
-    generate_pointer_harnesses!(u8, check_offset_slice_u8, check_add_slice_u8, check_sub_slice_u8);
-    generate_pointer_harnesses!(u16, check_offset_slice_u16, check_add_slice_u16, check_sub_slice_u16);
-    generate_pointer_harnesses!(u32, check_offset_slice_u32, check_add_slice_u32, check_sub_slice_u32);
-    generate_pointer_harnesses!(u64, check_offset_slice_u64, check_add_slice_u64, check_sub_slice_u64);
-    generate_pointer_harnesses!(u128, check_offset_slice_u128, check_add_slice_u128, check_sub_slice_u128);
-    generate_pointer_harnesses!(usize, check_offset_slice_usize, check_add_slice_usize, check_sub_slice_usize);
+    generate_slice_harnesses!(i8, check_offset_slice_i8, check_add_slice_i8, check_sub_slice_i8);
+    generate_slice_harnesses!(i16, check_offset_slice_i16, check_add_slice_i16, check_sub_slice_i16);
+    generate_slice_harnesses!(i32, check_offset_slice_i32, check_add_slice_i32, check_sub_slice_i32);
+    generate_slice_harnesses!(i64, check_offset_slice_i64, check_add_slice_i64, check_sub_slice_i64);
+    generate_slice_harnesses!(i128, check_offset_slice_i128, check_add_slice_i128, check_sub_slice_i128);
+    generate_slice_harnesses!(isize, check_offset_slice_isize, check_add_slice_isize, check_sub_slice_isize);
+    generate_slice_harnesses!(u8, check_offset_slice_u8, check_add_slice_u8, check_sub_slice_u8);
+    generate_slice_harnesses!(u16, check_offset_slice_u16, check_add_slice_u16, check_sub_slice_u16);
+    generate_slice_harnesses!(u32, check_offset_slice_u32, check_add_slice_u32, check_sub_slice_u32);
+    generate_slice_harnesses!(u64, check_offset_slice_u64, check_add_slice_u64, check_sub_slice_u64);
+    generate_slice_harnesses!(u128, check_offset_slice_u128, check_add_slice_u128, check_sub_slice_u128);
+    generate_slice_harnesses!(usize, check_offset_slice_usize, check_add_slice_usize, check_sub_slice_usize);
 
     // Generate pointer harnesses for tuples (offset, add, sub)
-    generate_pointer_harnesses!((i8, i8), check_offset_slice_tuple_1, check_add_slice_tuple_1, check_sub_slice_tuple_1);
-    generate_pointer_harnesses!((f64, bool), check_offset_slice_tuple_2, check_add_slice_tuple_2, check_sub_slice_tuple_2);
-    generate_pointer_harnesses!((i32, f64, bool), check_offset_slice_tuple_3, check_add_slice_tuple_3, check_sub_slice_tuple_3);
-    generate_pointer_harnesses!((i8, u16, i32, u64, isize), check_offset_slice_tuple_4, check_add_slice_tuple_4, check_sub_slice_tuple_4);
+    generate_slice_harnesses!((i8, i8), check_offset_slice_tuple_1, check_add_slice_tuple_1, check_sub_slice_tuple_1);
+    generate_slice_harnesses!((f64, bool), check_offset_slice_tuple_2, check_add_slice_tuple_2, check_sub_slice_tuple_2);
+    generate_slice_harnesses!((i32, f64, bool), check_offset_slice_tuple_3, check_add_slice_tuple_3, check_sub_slice_tuple_3);
+    generate_slice_harnesses!((i8, u16, i32, u64, isize), check_offset_slice_tuple_4, check_add_slice_tuple_4, check_sub_slice_tuple_4);
   
      // fn <*const T>::add verification begin
      macro_rules! generate_add_harness {
