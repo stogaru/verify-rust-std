@@ -1945,6 +1945,7 @@ mod verify {
                 } else {
                     let val2: $type = kani::any::<$type>();
                     &val2
+
                 };
 
                 unsafe {
@@ -1975,4 +1976,52 @@ mod verify {
         ((), bool, u8, u16, i32, f64, i128, usize),
         check_const_offset_from_tuple_4
     );
+  
+    // Array size bound for kani::any_array
+    const ARRAY_SIZE: usize = 40;
+
+    macro_rules! generate_offset_from_harnesses_for_slices {
+        ($type:ty, $proof_name:ident) => {
+            #[kani::proof_for_contract(<*const $type>::offset_from)]
+            fn $proof_name() {
+                let arr1: [$type; ARRAY_SIZE] = kani::Arbitrary::any_array();
+                let arr2: [$type; ARRAY_SIZE] = kani::Arbitrary::any_array();
+                let len_arr_bytes: usize = mem::size_of::<$type>() * ARRAY_SIZE;
+
+                let ptr_arr1: *const $type = arr1.as_ptr();
+
+                // Non-deterministically offset the pointer within the allocated object
+                let mut offset: usize = kani::any_where(|x| *x <= len_arr_bytes );
+                let src_ptr: *const $type = ptr_arr1.wrapping_byte_add(offset);
+
+                offset = kani::any_where(|x| *x <= len_arr_bytes);
+                
+                // Non-deterministically generate pointer of same or different provenance
+                let dest_ptr: *const $type = if kani::any() {
+                    ptr_arr1.wrapping_byte_add(offset)
+                } else {
+                    arr2.as_ptr().wrapping_byte_add(offset) as *const $type
+                };
+
+                unsafe {
+                    src_ptr.offset_from(dest_ptr);
+                }
+            }
+        }
+    }
+
+    generate_offset_from_harnesses_for_slices!(i8, check_offset_from_slice_i8);
+    generate_offset_from_harnesses_for_slices!(i16, check_offset_from_slice_i16);
+    generate_offset_from_harnesses_for_slices!(i32, check_offset_from_slice_i32);
+    generate_offset_from_harnesses_for_slices!(i64, check_offset_from_slice_i64);
+    generate_offset_from_harnesses_for_slices!(i128, check_offset_from_slice_i128);
+    generate_offset_from_harnesses_for_slices!(isize, check_offset_from_slice_isize);
+    generate_offset_from_harnesses_for_slices!(u8, check_offset_from_slice_u8);
+    generate_offset_from_harnesses_for_slices!(u16, check_offset_from_slice_u16);
+    generate_offset_from_harnesses_for_slices!(u32, check_offset_from_slice_u32);
+    generate_offset_from_harnesses_for_slices!(u64, check_offset_from_slice_u64);
+    generate_offset_from_harnesses_for_slices!(u128, check_offset_from_slice_u128);
+    generate_offset_from_harnesses_for_slices!(usize, check_offset_from_slice_usize);
+    generate_offset_from_harnesses_for_slices!(bool, check_offset_from_slice_bool);
+    generate_offset_from_harnesses_for_slices!((), check_offset_from_slice_unit);
 }
