@@ -1827,7 +1827,82 @@ impl<T: ?Sized> PartialOrd for *const T {
 #[unstable(feature = "kani", issue = "none")]
 mod verify {
     use crate::kani;
+    use core::mem;
+    // Constant for array size used in all tests, for performance reason
+    const ARRAY_SIZE: usize = 5;
 
+    /// This macro generates verification harnesses for the `offset`, `add`, and `sub`
+    /// pointer operations for a slice type and function name.
+    /// - `$ty`: The type of the array (e.g., i32, u32, tuples).
+    /// - `$offset_fn`: The function name for the `offset` operation.
+    /// - `$add_fn`: The function name for the `add` operation.
+    /// - `$sub_fn`: The function name for the `sub` operation.
+    macro_rules! generate_slice_harnesses {
+        ($ty:ty, $offset_fn:ident, $add_fn:ident, $sub_fn:ident) => {
+            // Generates a harness for the `offset` operation
+            #[kani::proof_for_contract(<*const $ty>::offset)]
+            fn $offset_fn() {
+                let arr: [$ty; ARRAY_SIZE] = kani::Arbitrary::any_array();
+                let test_ptr: *const $ty = arr.as_ptr();
+                let offset: usize = kani::any();
+                let count: isize = kani::any();
+                kani::assume(offset <= ARRAY_SIZE * mem::size_of::<$ty>());
+                let ptr_with_offset: *const $ty = test_ptr.wrapping_byte_add(offset);                
+                unsafe {
+                    ptr_with_offset.offset(count);
+                }
+            }
+
+            // Generates a harness for the `add` operation
+            #[kani::proof_for_contract(<*const $ty>::add)]
+            fn $add_fn() {
+                let arr: [$ty; ARRAY_SIZE] = kani::Arbitrary::any_array();
+                let test_ptr: *const $ty = arr.as_ptr();
+                let offset: usize = kani::any();
+                let count: usize = kani::any();
+                kani::assume(offset <= ARRAY_SIZE * mem::size_of::<$ty>());
+                let ptr_with_offset: *const $ty = test_ptr.wrapping_byte_add(offset);                
+                unsafe {
+                    ptr_with_offset.add(count);
+                }
+            }
+
+            // Generates a harness for the `sub` operation
+            #[kani::proof_for_contract(<*const $ty>::sub)]
+            fn $sub_fn() {
+                let arr: [$ty; ARRAY_SIZE] = kani::Arbitrary::any_array();
+                let test_ptr: *const $ty = arr.as_ptr();
+                let offset: usize = kani::any();
+                let count: usize = kani::any();
+                kani::assume(offset <= ARRAY_SIZE * mem::size_of::<$ty>());
+                let ptr_with_offset: *const $ty = test_ptr.wrapping_byte_add(offset);                
+                unsafe {
+                    ptr_with_offset.sub(count);
+                }
+            }
+        };
+    }
+
+    // Generate pointer harnesses for various types (offset, add, sub)
+    generate_slice_harnesses!(i8, check_offset_slice_i8, check_add_slice_i8, check_sub_slice_i8);
+    generate_slice_harnesses!(i16, check_offset_slice_i16, check_add_slice_i16, check_sub_slice_i16);
+    generate_slice_harnesses!(i32, check_offset_slice_i32, check_add_slice_i32, check_sub_slice_i32);
+    generate_slice_harnesses!(i64, check_offset_slice_i64, check_add_slice_i64, check_sub_slice_i64);
+    generate_slice_harnesses!(i128, check_offset_slice_i128, check_add_slice_i128, check_sub_slice_i128);
+    generate_slice_harnesses!(isize, check_offset_slice_isize, check_add_slice_isize, check_sub_slice_isize);
+    generate_slice_harnesses!(u8, check_offset_slice_u8, check_add_slice_u8, check_sub_slice_u8);
+    generate_slice_harnesses!(u16, check_offset_slice_u16, check_add_slice_u16, check_sub_slice_u16);
+    generate_slice_harnesses!(u32, check_offset_slice_u32, check_add_slice_u32, check_sub_slice_u32);
+    generate_slice_harnesses!(u64, check_offset_slice_u64, check_add_slice_u64, check_sub_slice_u64);
+    generate_slice_harnesses!(u128, check_offset_slice_u128, check_add_slice_u128, check_sub_slice_u128);
+    generate_slice_harnesses!(usize, check_offset_slice_usize, check_add_slice_usize, check_sub_slice_usize);
+
+    // Generate pointer harnesses for tuples (offset, add, sub)
+    generate_slice_harnesses!((i8, i8), check_offset_slice_tuple_1, check_add_slice_tuple_1, check_sub_slice_tuple_1);
+    generate_slice_harnesses!((f64, bool), check_offset_slice_tuple_2, check_add_slice_tuple_2, check_sub_slice_tuple_2);
+    generate_slice_harnesses!((i32, f64, bool), check_offset_slice_tuple_3, check_add_slice_tuple_3, check_sub_slice_tuple_3);
+    generate_slice_harnesses!((i8, u16, i32, u64, isize), check_offset_slice_tuple_4, check_add_slice_tuple_4, check_sub_slice_tuple_4);
+    
     // generate proof for contracts for integer type, composite type and unit type pointers
     macro_rules! generate_const_arithmetic_harness {
         ($type:ty, $proof_name:ident, add) => {
