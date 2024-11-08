@@ -1792,7 +1792,8 @@ mod verify {
     use crate::kani;
     use core::mem;
 
-    const ARRAY_SIZE: usize = 5;
+    // Array size bound for kani::any_array
+    const ARRAY_SIZE: usize = 40;
 
     macro_rules! generate_offset_from_harnesses_for_slices {
 
@@ -1804,11 +1805,14 @@ mod verify {
                 let len_arr_bytes: usize = mem::size_of::<$type>() * ARRAY_SIZE;
 
                 let ptr_arr1: *const $type = arr1.as_ptr();
+
+                // Non-deterministically offset the pointer within the allocated object
                 let mut offset: usize = kani::any_where(|x| *x <= len_arr_bytes );
                 let src_ptr: *const $type = ptr_arr1.wrapping_byte_add(offset);
 
                 offset = kani::any_where(|x| *x <= len_arr_bytes);
-    
+                
+                // Non-deterministically generate pointer of same or different provenance
                 let dest_ptr: *const $type = if kani::any() {
                     ptr_arr1.wrapping_byte_add(offset)
                 } else {
