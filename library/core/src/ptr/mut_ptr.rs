@@ -2214,6 +2214,7 @@ impl<T: ?Sized> PartialOrd for *mut T {
 mod verify {
     use crate::kani;
     use kani::{PointerGenerator};
+    use core::mem;
 
     #[kani::proof_for_contract(<*mut ()>::offset_from)]
     pub fn check_mut_offset_from_unit() {
@@ -2232,13 +2233,19 @@ mod verify {
                 let mut val: $type = kani::any::<$type>();
                 let ptr: *mut $type = &mut val;
 
-                let offset: usize = kani::any_where(|x| *x <= 1);
-                let src_ptr: *mut $type = unsafe { ptr.add(offset) };
-                let offset: usize = kani::any_where(|x| *x <= 1);
-                let dest_ptr: *mut $type = unsafe { ptr.add(offset) };
+                let offset: usize = kani::any_where(|x| *x <= mem::size_of::<$type>());
+                let src_ptr: *mut $type = unsafe { ptr.byte_add(offset) };
+                let offset: usize = kani::any_where(|x| *x <= mem::size_of::<$type>());
+                let dest_ptr: *mut $type = if kani::any() {
+                    let offset: usize = kani::any_where(|x| *x <= mem::size_of::<$type>());
+                    unsafe { ptr.byte_add(offset) }
+                } else {
+                    let mut val2: $type = kani::any::<$type>();
+                    &mut val2
+                }; 
 
                 unsafe {
-                    dest_ptr.offset_from(src_ptr);
+                    src_ptr.offset_from(dest_ptr);
                 }
 
 
