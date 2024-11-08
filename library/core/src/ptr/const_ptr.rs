@@ -675,7 +675,7 @@ impl<T: ?Sized> *const T {
         (mem::size_of::<T>() != 0) && // offset_from requires pointee size to be greater than 0
         (self as isize).checked_sub(origin as isize).is_some() &&
         (self as isize - origin as isize) % (mem::size_of::<T>() as isize) == 0 &&
-        kani::mem::same_allocation(self, origin)
+        (self as isize == origin as isize || kani::mem::same_allocation(self, origin))
     )]
     #[ensures(|result| *result == (self as isize - origin as isize) / (mem::size_of::<T>() as isize))]
     pub const unsafe fn offset_from(self, origin: *const T) -> isize
@@ -1931,21 +1931,21 @@ mod verify {
         ($type: ty, $proof_name: ident) => {
             #[kani::proof_for_contract(<*const $type>::offset_from)]
             pub fn $proof_name() {
-                let val: $type = kani::any::<$type>();
-                let ptr: *const $type = &val;
+                let val1: $type = kani::any::<$type>();
+                let val2: $type = kani::any::<$type>();
+                let ptr1: *const $type = &val1;
+                let ptr2: *const $type = &val2;
 
                 // offset the src pointer within the allocation bounds non-deterministically
-                let offset: usize = kani::any_where(|x| *x <= mem::size_of::<$type>());
-                let src_ptr: *const $type = unsafe { ptr.byte_add(offset) };
-                
-                // generate the dest ptr non-deterministically with same or different provenance. 
-                let dest_ptr: *const $type = if kani::any() {
-                    let offset: usize = kani::any_where(|x| *x <= mem::size_of::<$type>());
-                    unsafe { ptr.byte_add(offset) }
-                } else {
-                    let val2: $type = kani::any::<$type>();
-                    &val2
+                let mut offset: usize = kani::any_where(|x| *x <= mem::size_of::<$type>());
+                let src_ptr: *const $type = ptr1.wrapping_byte_add(offset);
 
+                offset = kani::any_where(|x| *x <= mem::size_of::<$type>());
+                // generate the dest ptr non-deterministically with same or different provenance 
+                let dest_ptr: *const $type = if kani::any() {
+                    ptr1.wrapping_byte_add(offset)
+                } else {
+                    ptr2.wrapping_byte_add(offset)
                 };
 
                 unsafe {
