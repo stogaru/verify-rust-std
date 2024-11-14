@@ -3,6 +3,11 @@ use crate::cmp::Ordering::{Equal, Greater, Less};
 use crate::intrinsics::const_eval_select;
 use crate::mem::SizedTypeProperties;
 use crate::slice::{self, SliceIndex};
+use safety::{ensures, requires};
+
+#[cfg(kani)]
+use crate::kani;
+use core::mem;
 
 impl<T: ?Sized> *mut T {
     /// Returns `true` if the pointer is null.
@@ -94,7 +99,10 @@ impl<T: ?Sized> *mut T {
     /// // This dereference is UB. The pointer only has provenance for `x` but points to `y`.
     /// println!("{:?}", unsafe { &*bad });
     #[unstable(feature = "set_ptr_value", issue = "75091")]
-    #[cfg_attr(bootstrap, rustc_const_stable(feature = "ptr_metadata_const", since = "1.83.0"))]
+    #[cfg_attr(
+        bootstrap,
+        rustc_const_stable(feature = "ptr_metadata_const", since = "1.83.0")
+    )]
     #[must_use = "returns a new pointer rather than modifying its argument"]
     #[inline]
     pub const fn with_metadata_of<U>(self, meta: *const U) -> *mut U
@@ -277,7 +285,11 @@ impl<T: ?Sized> *mut T {
     pub const unsafe fn as_ref<'a>(self) -> Option<&'a T> {
         // SAFETY: the caller must guarantee that `self` is valid for a
         // reference if it isn't null.
-        if self.is_null() { None } else { unsafe { Some(&*self) } }
+        if self.is_null() {
+            None
+        } else {
+            unsafe { Some(&*self) }
+        }
     }
 
     /// Returns a shared reference to the value behind the pointer.
@@ -352,7 +364,11 @@ impl<T: ?Sized> *mut T {
     {
         // SAFETY: the caller must guarantee that `self` meets all the
         // requirements for a reference.
-        if self.is_null() { None } else { Some(unsafe { &*(self as *const MaybeUninit<T>) }) }
+        if self.is_null() {
+            None
+        } else {
+            Some(unsafe { &*(self as *const MaybeUninit<T>) })
+        }
     }
 
     /// Adds a signed offset to a pointer.
@@ -457,6 +473,22 @@ impl<T: ?Sized> *mut T {
     #[stable(feature = "pointer_byte_offsets", since = "1.75.0")]
     #[rustc_const_stable(feature = "const_pointer_byte_offsets", since = "1.75.0")]
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
+    #[requires(
+        // If the size of the pointee is zero, then `count` must also be zero
+        (mem::size_of_val_raw(self) == 0 && count == 0) ||
+        // If the size of the pointee is not zero, then ensure that adding `count`
+        // bytes doesn't cause overflow and that both pointers `self` and the result
+        // are pointing to the same address or in the same allocation
+        (mem::size_of_val_raw(self) != 0 &&
+            (self as *mut u8 as isize).checked_add(count).is_some() &&
+            ((self as *mut u8 as usize) == (self.wrapping_byte_offset(count) as *mut u8 as usize) ||
+                kani::mem::same_allocation(self as *const T, self.wrapping_byte_offset(count) as *const T)))
+    )]
+    #[ensures(|result|
+        // The resulting pointer should either be unchanged or still point to the same allocation
+        ((self as *mut u8 as usize) == (*result as *mut u8 as usize)) ||
+        (kani::mem::same_allocation(self as *const T, *result as *const T))
+    )]
     pub const unsafe fn byte_offset(self, count: isize) -> Self {
         // SAFETY: the caller must uphold the safety contract for `offset`.
         unsafe { self.cast::<u8>().offset(count).with_metadata_of(self) }
@@ -537,7 +569,9 @@ impl<T: ?Sized> *mut T {
     #[stable(feature = "pointer_byte_offsets", since = "1.75.0")]
     #[rustc_const_stable(feature = "const_pointer_byte_offsets", since = "1.75.0")]
     pub const fn wrapping_byte_offset(self, count: isize) -> Self {
-        self.cast::<u8>().wrapping_offset(count).with_metadata_of(self)
+        self.cast::<u8>()
+            .wrapping_offset(count)
+            .with_metadata_of(self)
     }
 
     /// Masks out bits of the pointer according to a mask.
@@ -578,7 +612,9 @@ impl<T: ?Sized> *mut T {
     #[must_use = "returns a new pointer rather than modifying its argument"]
     #[inline(always)]
     pub fn mask(self, mask: usize) -> *mut T {
-        intrinsics::ptr_mask(self.cast::<()>(), mask).cast_mut().with_metadata_of(self)
+        intrinsics::ptr_mask(self.cast::<()>(), mask)
+            .cast_mut()
+            .with_metadata_of(self)
     }
 
     /// Returns `None` if the pointer is null, or else returns a unique reference to
@@ -628,7 +664,11 @@ impl<T: ?Sized> *mut T {
     pub const unsafe fn as_mut<'a>(self) -> Option<&'a mut T> {
         // SAFETY: the caller must guarantee that `self` is be valid for
         // a mutable reference if it isn't null.
-        if self.is_null() { None } else { unsafe { Some(&mut *self) } }
+        if self.is_null() {
+            None
+        } else {
+            unsafe { Some(&mut *self) }
+        }
     }
 
     /// Returns a unique reference to the value behind the pointer.
@@ -689,7 +729,11 @@ impl<T: ?Sized> *mut T {
     {
         // SAFETY: the caller must guarantee that `self` meets all the
         // requirements for a reference.
-        if self.is_null() { None } else { Some(unsafe { &mut *(self as *mut MaybeUninit<T>) }) }
+        if self.is_null() {
+            None
+        } else {
+            Some(unsafe { &mut *(self as *mut MaybeUninit<T>) })
+        }
     }
 
     /// Returns whether two pointers are guaranteed to be equal.
@@ -1052,6 +1096,22 @@ impl<T: ?Sized> *mut T {
     #[stable(feature = "pointer_byte_offsets", since = "1.75.0")]
     #[rustc_const_stable(feature = "const_pointer_byte_offsets", since = "1.75.0")]
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
+    #[requires(
+        // If the size of the pointee is zero, then `count` must also be zero
+        (mem::size_of_val_raw(self) == 0 && count == 0) ||
+        // If the size of the pointee is not zero, then ensure that adding `count`
+        // bytes doesn't cause overflow and that both pointers `self` and the result
+        // are pointing to the same address or in the same allocation
+        (mem::size_of_val_raw(self) != 0 &&
+            (self as *mut u8 as isize).checked_add(count as isize).is_some() &&
+            ((self as *mut u8 as usize) == (self.wrapping_byte_add(count) as *mut u8 as usize) ||
+                kani::mem::same_allocation(self as *const T, self.wrapping_byte_add(count) as *const T)))
+    )]
+    #[ensures(|result|
+        // The resulting pointer should either be unchanged or still point to the same allocation
+        ((self as *mut u8 as usize) == (*result as *mut u8 as usize)) ||
+        (kani::mem::same_allocation(self as *const T, *result as *const T))
+    )]
     pub const unsafe fn byte_add(self, count: usize) -> Self {
         // SAFETY: the caller must uphold the safety contract for `add`.
         unsafe { self.cast::<u8>().add(count).with_metadata_of(self) }
@@ -1167,6 +1227,22 @@ impl<T: ?Sized> *mut T {
     #[stable(feature = "pointer_byte_offsets", since = "1.75.0")]
     #[rustc_const_stable(feature = "const_pointer_byte_offsets", since = "1.75.0")]
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
+    #[requires(
+        // If the size of the pointee is zero, then `count` must also be zero
+        (mem::size_of_val_raw(self) == 0 && count == 0) ||
+        // If the size of the pointee is not zero then ensure that adding `count`
+        // bytes doesn't cause overflow and that both pointers `self` and the result
+        // would be pointing to the same address or in the same allocation
+        (mem::size_of_val_raw(self) != 0 &&
+            (self as *mut u8 as isize).checked_sub(count as isize).is_some() &&
+            ((self as *mut u8 as usize) == (self.wrapping_byte_sub(count) as *mut u8 as usize) ||
+                kani::mem::same_allocation(self as *const T, self.wrapping_byte_sub(count) as *const T)))
+    )]
+    #[ensures(|result|
+         // The resulting pointer should either be unchanged or still point to the same allocation
+        ((self as *mut u8 as isize) == (*result as *mut u8 as isize)) ||
+        (kani::mem::same_allocation(self as *const T, *result as *const T))
+    )]
     pub const unsafe fn byte_sub(self, count: usize) -> Self {
         // SAFETY: the caller must uphold the safety contract for `sub`.
         unsafe { self.cast::<u8>().sub(count).with_metadata_of(self) }
@@ -2301,4 +2377,158 @@ impl<T: ?Sized> PartialOrd for *mut T {
     fn ge(&self, other: &*mut T) -> bool {
         *self >= *other
     }
+}
+
+#[cfg(kani)]
+#[unstable(feature = "kani", issue = "none")]
+pub mod verify {
+    use crate::kani;
+    use core::mem;
+    use kani::PointerGenerator;
+
+    // generate proof for contracts for byte_add, byte_sub and byte_offset for unint types
+    macro_rules! gen_mut_byte_arith_unit_harness {
+        (byte_offset, $proof_name:ident) => {
+            #[kani::proof_for_contract(<*mut ()>::byte_offset)]
+            pub fn $proof_name() {
+                let mut val = ();
+                let ptr: *mut () = &mut val as *mut ();
+                let count: isize = kani::any();
+                unsafe {
+                    ptr.byte_offset(count);
+                }
+            }
+        };
+
+        ($fn_name:ident, $proof_name:ident) => {
+            #[kani::proof_for_contract(<*mut ()>::$fn_name)]
+            pub fn $proof_name() {
+                let mut val = ();
+                let ptr: *mut () = &mut val as *mut ();
+                //byte_add and byte_sub need count to be usize unlike byte_offset
+                let count: usize = kani::any();
+                unsafe {
+                    ptr.$fn_name(count);
+                }
+            }
+        };
+    }
+
+    gen_mut_byte_arith_unit_harness!(byte_add, check_mut_byte_add_unit);
+    gen_mut_byte_arith_unit_harness!(byte_sub, check_mut_byte_sub_unit);
+    gen_mut_byte_arith_unit_harness!(byte_offset, check_mut_byte_offset_unit);
+
+    const ARRAY_LEN: usize = 40;
+
+    // generate proof for contracts for byte_add, byte_sub and byte_offset
+    macro_rules! gen_mut_byte_arith_harness {
+        ($type:ty, byte_offset, $proof_name:ident) => {
+            #[kani::proof_for_contract(<*mut $type>::byte_offset)]
+            pub fn $proof_name() {
+                // generator with space for single element
+                let mut generator1 = PointerGenerator::<{ mem::size_of::<$type>() }>::new();
+                // generator with space for multiple elements
+                let mut generator2 =
+                    PointerGenerator::<{ mem::size_of::<$type>() * ARRAY_LEN }>::new();
+
+                let ptr: *mut $type = if kani::any() {
+                    generator1.any_in_bounds().ptr as *mut $type
+                } else {
+                    generator2.any_in_bounds().ptr as *mut $type
+                };
+                let count: isize = kani::any();
+
+                unsafe {
+                    ptr.byte_offset(count);
+                }
+            }
+        };
+
+        ($type:ty, $fn_name:ident, $proof_name:ident) => {
+            #[kani::proof_for_contract(<*mut $type>::$fn_name)]
+            pub fn $proof_name() {
+                // generator with space for single element
+                let mut generator1 = PointerGenerator::<{ mem::size_of::<$type>() }>::new();
+                // generator with space for multiple elements
+                let mut generator2 =
+                    PointerGenerator::<{ mem::size_of::<$type>() * ARRAY_LEN }>::new();
+
+                let ptr: *mut $type = if kani::any() {
+                    generator1.any_in_bounds().ptr as *mut $type
+                } else {
+                    generator2.any_in_bounds().ptr as *mut $type
+                };
+
+                //byte_add and byte_sub need count to be usize unlike byte_offset
+                let count: usize = kani::any();
+
+                unsafe {
+                    ptr.$fn_name(count);
+                }
+            }
+        };
+    }
+
+    gen_mut_byte_arith_harness!(i8, byte_add, check_mut_byte_add_i8);
+    gen_mut_byte_arith_harness!(i16, byte_add, check_mut_byte_add_i16);
+    gen_mut_byte_arith_harness!(i32, byte_add, check_mut_byte_add_i32);
+    gen_mut_byte_arith_harness!(i64, byte_add, check_mut_byte_add_i64);
+    gen_mut_byte_arith_harness!(i128, byte_add, check_mut_byte_add_i128);
+    gen_mut_byte_arith_harness!(isize, byte_add, check_mut_byte_add_isize);
+    gen_mut_byte_arith_harness!(u8, byte_add, check_mut_byte_add_u8);
+    gen_mut_byte_arith_harness!(u16, byte_add, check_mut_byte_add_u16);
+    gen_mut_byte_arith_harness!(u32, byte_add, check_mut_byte_add_u32);
+    gen_mut_byte_arith_harness!(u64, byte_add, check_mut_byte_add_u64);
+    gen_mut_byte_arith_harness!(u128, byte_add, check_mut_byte_add_u128);
+    gen_mut_byte_arith_harness!(usize, byte_add, check_mut_byte_add_usize);
+    gen_mut_byte_arith_harness!((i8, i8), byte_add, check_mut_byte_add_tuple_1);
+    gen_mut_byte_arith_harness!((f64, bool), byte_add, check_mut_byte_add_tuple_2);
+    gen_mut_byte_arith_harness!((i32, f64, bool), byte_add, check_mut_byte_add_tuple_3);
+    gen_mut_byte_arith_harness!(
+        (i8, u16, i32, u64, isize),
+        byte_add,
+        check_mut_byte_add_tuple_4
+    );
+
+    gen_mut_byte_arith_harness!(i8, byte_sub, check_mut_byte_sub_i8);
+    gen_mut_byte_arith_harness!(i16, byte_sub, check_mut_byte_sub_i16);
+    gen_mut_byte_arith_harness!(i32, byte_sub, check_mut_byte_sub_i32);
+    gen_mut_byte_arith_harness!(i64, byte_sub, check_mut_byte_sub_i64);
+    gen_mut_byte_arith_harness!(i128, byte_sub, check_mut_byte_sub_i128);
+    gen_mut_byte_arith_harness!(isize, byte_sub, check_mut_byte_sub_isize);
+    gen_mut_byte_arith_harness!(u8, byte_sub, check_mut_byte_sub_u8);
+    gen_mut_byte_arith_harness!(u16, byte_sub, check_mut_byte_sub_u16);
+    gen_mut_byte_arith_harness!(u32, byte_sub, check_mut_byte_sub_u32);
+    gen_mut_byte_arith_harness!(u64, byte_sub, check_mut_byte_sub_u64);
+    gen_mut_byte_arith_harness!(u128, byte_sub, check_mut_byte_sub_u128);
+    gen_mut_byte_arith_harness!(usize, byte_sub, check_mut_byte_sub_usize);
+    gen_mut_byte_arith_harness!((i8, i8), byte_sub, check_mut_byte_sub_tuple_1);
+    gen_mut_byte_arith_harness!((f64, bool), byte_sub, check_mut_byte_sub_tuple_2);
+    gen_mut_byte_arith_harness!((i32, f64, bool), byte_sub, check_mut_byte_sub_tuple_3);
+    gen_mut_byte_arith_harness!(
+        (i8, u16, i32, u64, isize),
+        byte_sub,
+        check_mut_byte_sub_tuple_4
+    );
+
+    gen_mut_byte_arith_harness!(i8, byte_offset, check_mut_byte_offset_i8);
+    gen_mut_byte_arith_harness!(i16, byte_offset, check_mut_byte_offset_i16);
+    gen_mut_byte_arith_harness!(i32, byte_offset, check_mut_byte_offset_i32);
+    gen_mut_byte_arith_harness!(i64, byte_offset, check_mut_byte_offset_i64);
+    gen_mut_byte_arith_harness!(i128, byte_offset, check_mut_byte_offset_i128);
+    gen_mut_byte_arith_harness!(isize, byte_offset, check_mut_byte_offset_isize);
+    gen_mut_byte_arith_harness!(u8, byte_offset, check_mut_byte_offset_u8);
+    gen_mut_byte_arith_harness!(u16, byte_offset, check_mut_byte_offset_u16);
+    gen_mut_byte_arith_harness!(u32, byte_offset, check_mut_byte_offset_u32);
+    gen_mut_byte_arith_harness!(u64, byte_offset, check_mut_byte_offset_u64);
+    gen_mut_byte_arith_harness!(u128, byte_offset, check_mut_byte_offset_u128);
+    gen_mut_byte_arith_harness!(usize, byte_offset, check_mut_byte_offset_usize);
+    gen_mut_byte_arith_harness!((i8, i8), byte_offset, check_mut_byte_offset_tuple_1);
+    gen_mut_byte_arith_harness!((f64, bool), byte_offset, check_mut_byte_offset_tuple_2);
+    gen_mut_byte_arith_harness!((i32, f64, bool), byte_offset, check_mut_byte_offset_tuple_3);
+    gen_mut_byte_arith_harness!(
+        (i8, u16, i32, u64, isize),
+        byte_offset,
+        check_mut_byte_offset_tuple_4
+    );
 }
