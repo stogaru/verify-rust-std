@@ -1926,7 +1926,7 @@ mod verify {
     /// This macro generates proofs for contracts on `add`, `sub`, and `offset`
     /// operations for pointers to integer, composite, and unit types.
     /// - `$type`: Specifies the pointee type.
-    /// - `$proof_name`: Specifies the name of the generated proof for the contract.
+    /// - `$proof_name`: Specifies the name of the generated proof for contract.
     macro_rules! generate_const_arithmetic_harness {
         ($type:ty, $proof_name:ident, add) => {
             #[kani::proof_for_contract(<*const $type>::add)]
