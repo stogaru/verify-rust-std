@@ -1883,27 +1883,50 @@ mod verify {
         };
     }
 
-    // Generate pointer harnesses for various types (offset, add, sub)
-    generate_slice_harnesses!(i8, check_offset_slice_i8, check_add_slice_i8, check_sub_slice_i8);
-    generate_slice_harnesses!(i16, check_offset_slice_i16, check_add_slice_i16, check_sub_slice_i16);
-    generate_slice_harnesses!(i32, check_offset_slice_i32, check_add_slice_i32, check_sub_slice_i32);
-    generate_slice_harnesses!(i64, check_offset_slice_i64, check_add_slice_i64, check_sub_slice_i64);
-    generate_slice_harnesses!(i128, check_offset_slice_i128, check_add_slice_i128, check_sub_slice_i128);
-    generate_slice_harnesses!(isize, check_offset_slice_isize, check_add_slice_isize, check_sub_slice_isize);
-    generate_slice_harnesses!(u8, check_offset_slice_u8, check_add_slice_u8, check_sub_slice_u8);
-    generate_slice_harnesses!(u16, check_offset_slice_u16, check_add_slice_u16, check_sub_slice_u16);
-    generate_slice_harnesses!(u32, check_offset_slice_u32, check_add_slice_u32, check_sub_slice_u32);
-    generate_slice_harnesses!(u64, check_offset_slice_u64, check_add_slice_u64, check_sub_slice_u64);
-    generate_slice_harnesses!(u128, check_offset_slice_u128, check_add_slice_u128, check_sub_slice_u128);
-    generate_slice_harnesses!(usize, check_offset_slice_usize, check_add_slice_usize, check_sub_slice_usize);
+    // Generate slice harnesses for various types (offset, add, sub)
+    generate_slice_harnesses!(i8, check_const_offset_slice_i8, check_const_add_slice_i8, check_const_sub_slice_i8);
+    generate_slice_harnesses!(i16, check_const_offset_slice_i16, check_const_add_slice_i16, check_const_sub_slice_i16);
+    generate_slice_harnesses!(i32, check_const_offset_slice_i32, check_const_add_slice_i32, check_const_sub_slice_i32);
+    generate_slice_harnesses!(i64, check_const_offset_slice_i64, check_const_add_slice_i64, check_const_sub_slice_i64);
+    generate_slice_harnesses!(i128, check_const_offset_slice_i128, check_const_add_slice_i128, check_const_sub_slice_i128);
+    generate_slice_harnesses!(isize, check_const_offset_slice_isize, check_const_add_slice_isize, check_const_sub_slice_isize);
+    generate_slice_harnesses!(u8, check_const_offset_slice_u8, check_const_add_slice_u8, check_const_sub_slice_u8);
+    generate_slice_harnesses!(u16, check_const_offset_slice_u16, check_const_add_slice_u16, check_const_sub_slice_u16);
+    generate_slice_harnesses!(u32, check_const_offset_slice_u32, check_const_add_slice_u32, check_const_sub_slice_u32);
+    generate_slice_harnesses!(u64, check_const_offset_slice_u64, check_const_add_slice_u64, check_const_sub_slice_u64);
+    generate_slice_harnesses!(u128, check_const_offset_slice_u128, check_const_add_slice_u128, check_const_sub_slice_u128);
+    generate_slice_harnesses!(usize, check_const_offset_slice_usize, check_const_add_slice_usize, check_const_sub_slice_usize);
 
-    // Generate pointer harnesses for tuples (offset, add, sub)
-    generate_slice_harnesses!((i8, i8), check_offset_slice_tuple_1, check_add_slice_tuple_1, check_sub_slice_tuple_1);
-    generate_slice_harnesses!((f64, bool), check_offset_slice_tuple_2, check_add_slice_tuple_2, check_sub_slice_tuple_2);
-    generate_slice_harnesses!((i32, f64, bool), check_offset_slice_tuple_3, check_add_slice_tuple_3, check_sub_slice_tuple_3);
-    generate_slice_harnesses!((i8, u16, i32, u64, isize), check_offset_slice_tuple_4, check_add_slice_tuple_4, check_sub_slice_tuple_4);
+    // Generate slice harnesses for tuples (offset, add, sub)
+    generate_slice_harnesses!(
+        (i8, i8),
+        check_const_offset_slice_tuple_1,
+        check_const_add_slice_tuple_1,
+        check_const_sub_slice_tuple_1
+    );    
+    generate_slice_harnesses!(
+        (f64, bool),
+        check_const_offset_slice_tuple_2,
+        check_const_add_slice_tuple_2,
+        check_const_sub_slice_tuple_2
+    );
+    generate_slice_harnesses!(
+        (i32, f64, bool),
+        check_const_offset_slice_tuple_3,
+        check_const_add_slice_tuple_3,
+        check_const_sub_slice_tuple_3
+    );
+    generate_slice_harnesses!(
+        (i8, u16, i32, u64, isize),
+        check_const_offset_slice_tuple_4,
+        check_const_add_slice_tuple_4,
+        check_const_sub_slice_tuple_4
+    );
     
-    // generate proof for contracts for integer type, composite type and unit type pointers
+    /// This macro generates proofs for contracts on `add`, `sub`, and `offset`
+    /// operations for pointers to integer, composite, and unit types.
+    /// - `$type`: Specifies the pointee type.
+    /// - `$proof_name`: Specifies the name of the generated proof for the contract.
     macro_rules! generate_const_arithmetic_harness {
         ($type:ty, $proof_name:ident, add) => {
             #[kani::proof_for_contract(<*const $type>::add)]
@@ -1958,7 +1981,7 @@ mod verify {
         };
     }
 
-    // <*mut T>:: add() integer types verification
+    // <*const T>:: add() integer types verification
     generate_const_arithmetic_harness!(i8, check_const_add_i8, add);
     generate_const_arithmetic_harness!(i16, check_const_add_i16, add);
     generate_const_arithmetic_harness!(i32, check_const_add_i32, add);
@@ -1972,16 +1995,16 @@ mod verify {
     generate_const_arithmetic_harness!(u128, check_const_add_u128, add);
     generate_const_arithmetic_harness!(usize, check_const_add_usize, add);   
 
-    // <*mut T>:: add() unit type verification
+    // <*const T>:: add() unit type verification
     generate_const_arithmetic_harness!((), check_const_add_unit, add);
 
-    // <*mut T>:: add() composite types verification
+    // <*const T>:: add() composite types verification
     generate_const_arithmetic_harness!((i8, i8), check_const_add_tuple_1, add);
     generate_const_arithmetic_harness!((f64, bool), check_const_add_tuple_2, add);
     generate_const_arithmetic_harness!((i32, f64, bool), check_const_add_tuple_3, add);
     generate_const_arithmetic_harness!((i8, u16, i32, u64, isize), check_const_add_tuple_4, add);
 
-    // <*mut T>:: sub() integer types verification
+    // <*const T>:: sub() integer types verification
     generate_const_arithmetic_harness!(i8, check_const_sub_i8, sub);
     generate_const_arithmetic_harness!(i16, check_const_sub_i16, sub);
     generate_const_arithmetic_harness!(i32, check_const_sub_i32, sub);
@@ -1995,16 +2018,16 @@ mod verify {
     generate_const_arithmetic_harness!(u128, check_const_sub_u128, sub);
     generate_const_arithmetic_harness!(usize, check_const_sub_usize, sub);
 
-    // <*mut T>:: sub() unit type verification
+    // <*const T>:: sub() unit type verification
     generate_const_arithmetic_harness!((), check_const_sub_unit, sub);
 
-    // <*mut T>:: sub() composite types verification
+    // <*const T>:: sub() composite types verification
     generate_const_arithmetic_harness!((i8, i8), check_const_sub_tuple_1, sub);
     generate_const_arithmetic_harness!((f64, bool), check_const_sub_tuple_2, sub);
     generate_const_arithmetic_harness!((i32, f64, bool), check_const_sub_tuple_3, sub);
     generate_const_arithmetic_harness!((i8, u16, i32, u64, isize), check_const_sub_tuple_4, sub); 
 
-    // fn <*mut T>::offset() integer types verification
+    // fn <*const T>::offset() integer types verification
     generate_const_arithmetic_harness!(i8, check_const_offset_i8, offset);
     generate_const_arithmetic_harness!(i16, check_const_offset_i16, offset);
     generate_const_arithmetic_harness!(i32, check_const_offset_i32, offset);
@@ -2018,10 +2041,10 @@ mod verify {
     generate_const_arithmetic_harness!(u128, check_const_offset_u128, offset);
     generate_const_arithmetic_harness!(usize, check_const_offset_usize, offset);
 
-    // fn <*mut T>::offset() unit type verification
+    // fn <*const T>::offset() unit type verification
     generate_const_arithmetic_harness!((), check_const_offset_unit, offset);
 
-    // fn <*mut T>::offset() composite type verification
+    // fn <*const T>::offset() composite type verification
     generate_const_arithmetic_harness!((i8, i8), check_const_offset_tuple_1, offset);
     generate_const_arithmetic_harness!((f64, bool), check_const_offset_tuple_2, offset);
     generate_const_arithmetic_harness!((i32, f64, bool), check_const_offset_tuple_3, offset);
