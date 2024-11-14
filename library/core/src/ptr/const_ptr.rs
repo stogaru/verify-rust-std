@@ -672,10 +672,14 @@ impl<T: ?Sized> *const T {
     #[inline]
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
     #[requires(
+        // Ensures subtracting `origin` from `self` doesn't overflow
         (self as isize).checked_sub(origin as isize).is_some() &&
+        // Ensure the distance between `self` and `origin` is aligned to `T`
         (self as isize - origin as isize) % (mem::size_of::<T>() as isize) == 0 &&
+        // Ensure both pointers are in the same allocation or are pointing to the same address
         (self as isize == origin as isize || kani::mem::same_allocation(self, origin))
     )]
+    // The result should equal the distance in terms of elements of type `T` as per the documentation above
     #[ensures(|result| *result == (self as isize - origin as isize) / (mem::size_of::<T>() as isize))]
     pub const unsafe fn offset_from(self, origin: *const T) -> isize
     where
@@ -1914,8 +1918,8 @@ impl<T: ?Sized> PartialOrd for *const T {
 #[unstable(feature = "kani", issue = "none")]
 mod verify {
     use crate::kani;
-    use kani::PointerGenerator;
     use core::mem;
+    use kani::PointerGenerator;
 
     // Proof for unit size will panic as offset_from needs the pointee size to be greater then 0
     #[kani::proof_for_contract(<*const ()>::offset_from)]
@@ -1956,8 +1960,8 @@ mod verify {
             #[kani::proof_for_contract(<*const $type>::offset_from)]
             pub fn $proof_name2() {
                 const gen_size: usize = mem::size_of::<$type>();
-                let mut generator1 = PointerGenerator::<{gen_size * ARRAY_LEN}>::new();
-                let mut generator2 = PointerGenerator::<{gen_size * ARRAY_LEN}>::new();
+                let mut generator1 = PointerGenerator::<{ gen_size * ARRAY_LEN }>::new();
+                let mut generator2 = PointerGenerator::<{ gen_size * ARRAY_LEN }>::new();
                 let ptr1: *const $type = generator1.any_in_bounds().ptr;
                 let ptr2: *const $type = if kani::any() {
                     generator1.any_alloc_status().ptr
@@ -1972,23 +1976,83 @@ mod verify {
         };
     }
 
-    generate_offset_from_harness!(u8, check_const_offset_from_u8, check_const_offset_from_u8_arr);
-    generate_offset_from_harness!(u16, check_const_offset_from_u16, check_const_offset_from_u16_arr);
-    generate_offset_from_harness!(u32, check_const_offset_from_u32, check_const_offset_from_u32_arr);
-    generate_offset_from_harness!(u64, check_const_offset_from_u64, check_const_offset_from_u64_arr);
-    generate_offset_from_harness!(u128, check_const_offset_from_u128, check_const_offset_from_u128_arr);
-    generate_offset_from_harness!(usize, check_const_offset_from_usize, check_const_offset_from_usize_arr);
+    generate_offset_from_harness!(
+        u8,
+        check_const_offset_from_u8,
+        check_const_offset_from_u8_arr
+    );
+    generate_offset_from_harness!(
+        u16,
+        check_const_offset_from_u16,
+        check_const_offset_from_u16_arr
+    );
+    generate_offset_from_harness!(
+        u32,
+        check_const_offset_from_u32,
+        check_const_offset_from_u32_arr
+    );
+    generate_offset_from_harness!(
+        u64,
+        check_const_offset_from_u64,
+        check_const_offset_from_u64_arr
+    );
+    generate_offset_from_harness!(
+        u128,
+        check_const_offset_from_u128,
+        check_const_offset_from_u128_arr
+    );
+    generate_offset_from_harness!(
+        usize,
+        check_const_offset_from_usize,
+        check_const_offset_from_usize_arr
+    );
 
-    generate_offset_from_harness!(i8, check_const_offset_from_i8, check_const_offset_from_i8_arr);
-    generate_offset_from_harness!(i16, check_const_offset_from_i16, check_const_offset_from_i16_arr);
-    generate_offset_from_harness!(i32, check_const_offset_from_i32, check_const_offset_from_i32_arr);
-    generate_offset_from_harness!(i64, check_const_offset_from_i64, check_const_offset_from_i64_arr);
-    generate_offset_from_harness!(i128, check_const_offset_from_i128, check_const_offset_from_i128_arr);
-    generate_offset_from_harness!(isize, check_const_offset_from_isize, check_const_offset_from_isize_arr);
+    generate_offset_from_harness!(
+        i8,
+        check_const_offset_from_i8,
+        check_const_offset_from_i8_arr
+    );
+    generate_offset_from_harness!(
+        i16,
+        check_const_offset_from_i16,
+        check_const_offset_from_i16_arr
+    );
+    generate_offset_from_harness!(
+        i32,
+        check_const_offset_from_i32,
+        check_const_offset_from_i32_arr
+    );
+    generate_offset_from_harness!(
+        i64,
+        check_const_offset_from_i64,
+        check_const_offset_from_i64_arr
+    );
+    generate_offset_from_harness!(
+        i128,
+        check_const_offset_from_i128,
+        check_const_offset_from_i128_arr
+    );
+    generate_offset_from_harness!(
+        isize,
+        check_const_offset_from_isize,
+        check_const_offset_from_isize_arr
+    );
 
-    generate_offset_from_harness!((i8, i8), check_const_offset_from_tuple_1, check_const_offset_from_tuple_1_arr);
-    generate_offset_from_harness!((f64, bool), check_const_offset_from_tuple_2, check_const_offset_from_tuple_2_arr);
-    generate_offset_from_harness!((u32, i16, f32), check_const_offset_from_tuple_3, check_const_offset_from_tuple_3_arr);
+    generate_offset_from_harness!(
+        (i8, i8),
+        check_const_offset_from_tuple_1,
+        check_const_offset_from_tuple_1_arr
+    );
+    generate_offset_from_harness!(
+        (f64, bool),
+        check_const_offset_from_tuple_2,
+        check_const_offset_from_tuple_2_arr
+    );
+    generate_offset_from_harness!(
+        (u32, i16, f32),
+        check_const_offset_from_tuple_3,
+        check_const_offset_from_tuple_3_arr
+    );
     generate_offset_from_harness!(
         ((), bool, u8, u16, i32, f64, i128, usize),
         check_const_offset_from_tuple_4,
