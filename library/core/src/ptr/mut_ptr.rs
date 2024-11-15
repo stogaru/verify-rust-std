@@ -2367,7 +2367,7 @@ pub mod verify {
     // unit pointee type
     // - `$fn_name`: function for which the contract must be verified
     // - `$proof_name`: name of the harness generated
-    macro_rules! gen_mut_byte_arith_unit_harness {
+    macro_rules! gen_mut_byte_arith_harness_for_unit {
         (byte_offset, $proof_name:ident) => {
             #[kani::proof_for_contract(<*mut ()>::byte_offset)]
             pub fn $proof_name() {
@@ -2394,9 +2394,9 @@ pub mod verify {
         };
     }
 
-    gen_mut_byte_arith_unit_harness!(byte_add, check_mut_byte_add_unit);
-    gen_mut_byte_arith_unit_harness!(byte_sub, check_mut_byte_sub_unit);
-    gen_mut_byte_arith_unit_harness!(byte_offset, check_mut_byte_offset_unit);
+    gen_mut_byte_arith_harness_for_unit!(byte_add, check_mut_byte_add_unit);
+    gen_mut_byte_arith_harness_for_unit!(byte_sub, check_mut_byte_sub_unit);
+    gen_mut_byte_arith_harness_for_unit!(byte_offset, check_mut_byte_offset_unit);
 
     // bounding space for PointerGenerator to accommodate 40 elements.
     const ARRAY_LEN: usize = 40;
@@ -2515,4 +2515,76 @@ pub mod verify {
         byte_offset,
         check_mut_byte_offset_tuple_4
     );
+
+    macro_rules! gen_mut_byte_arith_harness_for_slice {
+        ($type:ty, byte_offset, $proof_name:ident) => {
+            #[kani::proof_for_contract(<*mut [$type]>::byte_offset)]
+            pub fn $proof_name() {
+                let mut arr: [$type; ARRAY_LEN] = kani::Arbitrary::any_array();
+                let slice: &mut [$type] = kani::slice::any_slice_of_array_mut(&mut arr);
+                let ptr: *mut [$type] = slice as *mut [$type];
+
+                let count: isize = kani::any();
+
+                unsafe {
+                    ptr.byte_offset(count);
+                }
+            }
+        };
+
+        ($type:ty, $fn_name: ident, $proof_name:ident) => {
+            #[kani::proof_for_contract(<*mut [$type]>::$fn_name)]
+            pub fn $proof_name() {
+                let mut arr: [$type; ARRAY_LEN] = kani::Arbitrary::any_array();
+                let slice: &mut [$type] = kani::slice::any_slice_of_array_mut(&mut arr);
+                let ptr: *mut [$type] = slice as *mut [$type];
+
+                //byte_add and byte_sub need count to be usize unlike byte_offset
+                let count: usize = kani::any();
+
+                unsafe {
+                    ptr.$fn_name(count);
+                }
+            }
+        };
+    }
+
+    gen_mut_byte_arith_harness_for_slice!(i8, byte_add, check_mut_byte_add_i8_slice);
+    gen_mut_byte_arith_harness_for_slice!(i16, byte_add, check_mut_byte_add_i16_slice);
+    gen_mut_byte_arith_harness_for_slice!(i32, byte_add, check_mut_byte_add_i32_slice);
+    gen_mut_byte_arith_harness_for_slice!(i64, byte_add, check_mut_byte_add_i64_slice);
+    gen_mut_byte_arith_harness_for_slice!(i128, byte_add, check_mut_byte_add_i128_slice);
+    gen_mut_byte_arith_harness_for_slice!(isize, byte_add, check_mut_byte_add_isize_slice);
+    gen_mut_byte_arith_harness_for_slice!(u8, byte_add, check_mut_byte_add_u8_slice);
+    gen_mut_byte_arith_harness_for_slice!(u16, byte_add, check_mut_byte_add_u16_slice);
+    gen_mut_byte_arith_harness_for_slice!(u32, byte_add, check_mut_byte_add_u32_slice);
+    gen_mut_byte_arith_harness_for_slice!(u64, byte_add, check_mut_byte_add_u64_slice);
+    gen_mut_byte_arith_harness_for_slice!(u128, byte_add, check_mut_byte_add_u128_slice);
+    gen_mut_byte_arith_harness_for_slice!(usize, byte_add, check_mut_byte_add_usize_slice);
+
+    gen_mut_byte_arith_harness_for_slice!(i8, byte_sub, check_mut_byte_sub_i8_slice);
+    gen_mut_byte_arith_harness_for_slice!(i16, byte_sub, check_mut_byte_sub_i16_slice);
+    gen_mut_byte_arith_harness_for_slice!(i32, byte_sub, check_mut_byte_sub_i32_slice);
+    gen_mut_byte_arith_harness_for_slice!(i64, byte_sub, check_mut_byte_sub_i64_slice);
+    gen_mut_byte_arith_harness_for_slice!(i128, byte_sub, check_mut_byte_sub_i128_slice);
+    gen_mut_byte_arith_harness_for_slice!(isize, byte_sub, check_mut_byte_sub_isize_slice);
+    gen_mut_byte_arith_harness_for_slice!(u8, byte_sub, check_mut_byte_sub_u8_slice);
+    gen_mut_byte_arith_harness_for_slice!(u16, byte_sub, check_mut_byte_sub_u16_slice);
+    gen_mut_byte_arith_harness_for_slice!(u32, byte_sub, check_mut_byte_sub_u32_slice);
+    gen_mut_byte_arith_harness_for_slice!(u64, byte_sub, check_mut_byte_sub_u64_slice);
+    gen_mut_byte_arith_harness_for_slice!(u128, byte_sub, check_mut_byte_sub_u128_slice);
+    gen_mut_byte_arith_harness_for_slice!(usize, byte_sub, check_mut_byte_sub_usize_slice);
+
+    gen_mut_byte_arith_harness_for_slice!(i8, byte_offset, check_mut_byte_offset_i8_slice);
+    gen_mut_byte_arith_harness_for_slice!(i16, byte_offset, check_mut_byte_offset_i16_slice);
+    gen_mut_byte_arith_harness_for_slice!(i32, byte_offset, check_mut_byte_offset_i32_slice);
+    gen_mut_byte_arith_harness_for_slice!(i64, byte_offset, check_mut_byte_offset_i64_slice);
+    gen_mut_byte_arith_harness_for_slice!(i128, byte_offset, check_mut_byte_offset_i128_slice);
+    gen_mut_byte_arith_harness_for_slice!(isize, byte_offset, check_mut_byte_offset_isize_slice);
+    gen_mut_byte_arith_harness_for_slice!(u8, byte_offset, check_mut_byte_offset_u8_slice);
+    gen_mut_byte_arith_harness_for_slice!(u16, byte_offset, check_mut_byte_offset_u16_slice);
+    gen_mut_byte_arith_harness_for_slice!(u32, byte_offset, check_mut_byte_offset_u32_slice);
+    gen_mut_byte_arith_harness_for_slice!(u64, byte_offset, check_mut_byte_offset_u64_slice);
+    gen_mut_byte_arith_harness_for_slice!(u128, byte_offset, check_mut_byte_offset_u128_slice);
+    gen_mut_byte_arith_harness_for_slice!(usize, byte_offset, check_mut_byte_offset_usize_slice);
 }
