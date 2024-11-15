@@ -98,7 +98,10 @@ impl<T: ?Sized> *mut T {
     /// // This dereference is UB. The pointer only has provenance for `x` but points to `y`.
     /// println!("{:?}", unsafe { &*bad });
     #[unstable(feature = "set_ptr_value", issue = "75091")]
-    #[cfg_attr(bootstrap, rustc_const_stable(feature = "ptr_metadata_const", since = "1.83.0"))]
+    #[cfg_attr(
+        bootstrap,
+        rustc_const_stable(feature = "ptr_metadata_const", since = "1.83.0")
+    )]
     #[must_use = "returns a new pointer rather than modifying its argument"]
     #[inline]
     pub const fn with_metadata_of<U>(self, meta: *const U) -> *mut U
@@ -416,7 +419,7 @@ impl<T: ?Sized> *mut T {
     )]
     // Postcondition: If `T` is a unit type (`size_of::<T>() == 0`), no allocation check is needed.
     // Otherwise, for non-unit types, ensure that `self` and `result` point to the same allocated object,
-    // verifying that the result remains within the same allocation as `self`. 
+    // verifying that the result remains within the same allocation as `self`.
     #[ensures(|result| (core::mem::size_of::<T>() == 0) || kani::mem::same_allocation(self as *const T, *result as *const T))]
     pub const unsafe fn offset(self, count: isize) -> *mut T
     where
@@ -1029,7 +1032,7 @@ impl<T: ?Sized> *mut T {
     )]
     // Postcondition: If `T` is a unit type (`size_of::<T>() == 0`), no allocation check is needed.
     // Otherwise, for non-unit types, ensure that `self` and `result` point to the same allocated object,
-    // verifying that the result remains within the same allocation as `self`.  
+    // verifying that the result remains within the same allocation as `self`.
     #[ensures(|result| (core::mem::size_of::<T>() == 0) || kani::mem::same_allocation(self as *const T, *result as *const T))]
     pub const unsafe fn add(self, count: usize) -> Self
     where
@@ -1153,7 +1156,7 @@ impl<T: ?Sized> *mut T {
     )]
     // Postcondition: If `T` is a unit type (`size_of::<T>() == 0`), no allocation check is needed.
     // Otherwise, for non-unit types, ensure that `self` and `result` point to the same allocated object,
-    // verifying that the result remains within the same allocation as `self`.  
+    // verifying that the result remains within the same allocation as `self`.
     #[ensures(|result| (core::mem::size_of::<T>() == 0) || kani::mem::same_allocation(self as *const T, *result as *const T))]
     pub const unsafe fn sub(self, count: usize) -> Self
     where
@@ -2365,8 +2368,8 @@ mod verify {
             #[kani::proof_for_contract(<*mut $type>::add)]
             pub fn $proof_name() {
                 // 200 bytes are large enough to cover all pointee types used for testing
-                const BUF_SIZE: usize = 200; 
-                let mut generator = kani::PointerGenerator::< BUF_SIZE >::new();                
+                const BUF_SIZE: usize = 200;
+                let mut generator = kani::PointerGenerator::<BUF_SIZE>::new();
                 let test_ptr: *mut $type = generator.any_in_bounds().ptr;
                 let count: usize = kani::any();
                 unsafe {
@@ -2378,8 +2381,8 @@ mod verify {
             #[kani::proof_for_contract(<*mut $type>::sub)]
             pub fn $proof_name() {
                 // 200 bytes are large enough to cover all pointee types used for testing
-                const BUF_SIZE: usize = 200; 
-                let mut generator = kani::PointerGenerator::< BUF_SIZE >::new();                
+                const BUF_SIZE: usize = 200;
+                let mut generator = kani::PointerGenerator::<BUF_SIZE>::new();
                 let test_ptr: *mut $type = generator.any_in_bounds().ptr;
                 let count: usize = kani::any();
                 unsafe {
@@ -2391,8 +2394,8 @@ mod verify {
             #[kani::proof_for_contract(<*mut $type>::offset)]
             pub fn $proof_name() {
                 // 200 bytes are large enough to cover all pointee types used for testing
-                const BUF_SIZE: usize = 200; 
-                let mut generator = kani::PointerGenerator::< BUF_SIZE >::new();                
+                const BUF_SIZE: usize = 200;
+                let mut generator = kani::PointerGenerator::<BUF_SIZE>::new();
                 let test_ptr: *mut $type = generator.any_in_bounds().ptr;
                 let count: isize = kani::any();
                 unsafe {
@@ -2415,7 +2418,7 @@ mod verify {
     generate_mut_arithmetic_harness!(u32, check_mut_add_u32, add);
     generate_mut_arithmetic_harness!(u64, check_mut_add_u64, add);
     generate_mut_arithmetic_harness!(u128, check_mut_add_u128, add);
-    generate_mut_arithmetic_harness!(usize, check_mut_add_usize, add);   
+    generate_mut_arithmetic_harness!(usize, check_mut_add_usize, add);
 
     // <*mut T>:: add() unit type verification
     generate_mut_arithmetic_harness!((), check_mut_add_unit, add);
@@ -2447,7 +2450,7 @@ mod verify {
     generate_mut_arithmetic_harness!((i8, i8), check_mut_sub_tuple_1, sub);
     generate_mut_arithmetic_harness!((f64, bool), check_mut_sub_tuple_2, sub);
     generate_mut_arithmetic_harness!((i32, f64, bool), check_mut_sub_tuple_3, sub);
-    generate_mut_arithmetic_harness!((i8, u16, i32, u64, isize), check_mut_sub_tuple_4, sub); 
+    generate_mut_arithmetic_harness!((i8, u16, i32, u64, isize), check_mut_sub_tuple_4, sub);
 
     // fn <*mut T>::offset() integer types verification
     generate_mut_arithmetic_harness!(i8, check_mut_offset_i8, offset);
