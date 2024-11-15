@@ -99,10 +99,7 @@ impl<T: ?Sized> *mut T {
     /// // This dereference is UB. The pointer only has provenance for `x` but points to `y`.
     /// println!("{:?}", unsafe { &*bad });
     #[unstable(feature = "set_ptr_value", issue = "75091")]
-    #[cfg_attr(
-        bootstrap,
-        rustc_const_stable(feature = "ptr_metadata_const", since = "1.83.0")
-    )]
+    #[cfg_attr(bootstrap, rustc_const_stable(feature = "ptr_metadata_const", since = "1.83.0"))]
     #[must_use = "returns a new pointer rather than modifying its argument"]
     #[inline]
     pub const fn with_metadata_of<U>(self, meta: *const U) -> *mut U
@@ -285,11 +282,7 @@ impl<T: ?Sized> *mut T {
     pub const unsafe fn as_ref<'a>(self) -> Option<&'a T> {
         // SAFETY: the caller must guarantee that `self` is valid for a
         // reference if it isn't null.
-        if self.is_null() {
-            None
-        } else {
-            unsafe { Some(&*self) }
-        }
+        if self.is_null() { None } else { unsafe { Some(&*self) } }
     }
 
     /// Returns a shared reference to the value behind the pointer.
@@ -364,11 +357,7 @@ impl<T: ?Sized> *mut T {
     {
         // SAFETY: the caller must guarantee that `self` meets all the
         // requirements for a reference.
-        if self.is_null() {
-            None
-        } else {
-            Some(unsafe { &*(self as *const MaybeUninit<T>) })
-        }
+        if self.is_null() { None } else { Some(unsafe { &*(self as *const MaybeUninit<T>) }) }
     }
 
     /// Adds a signed offset to a pointer.
@@ -569,9 +558,7 @@ impl<T: ?Sized> *mut T {
     #[stable(feature = "pointer_byte_offsets", since = "1.75.0")]
     #[rustc_const_stable(feature = "const_pointer_byte_offsets", since = "1.75.0")]
     pub const fn wrapping_byte_offset(self, count: isize) -> Self {
-        self.cast::<u8>()
-            .wrapping_offset(count)
-            .with_metadata_of(self)
+        self.cast::<u8>().wrapping_offset(count).with_metadata_of(self)
     }
 
     /// Masks out bits of the pointer according to a mask.
@@ -612,9 +599,7 @@ impl<T: ?Sized> *mut T {
     #[must_use = "returns a new pointer rather than modifying its argument"]
     #[inline(always)]
     pub fn mask(self, mask: usize) -> *mut T {
-        intrinsics::ptr_mask(self.cast::<()>(), mask)
-            .cast_mut()
-            .with_metadata_of(self)
+        intrinsics::ptr_mask(self.cast::<()>(), mask).cast_mut().with_metadata_of(self)
     }
 
     /// Returns `None` if the pointer is null, or else returns a unique reference to
@@ -664,11 +649,7 @@ impl<T: ?Sized> *mut T {
     pub const unsafe fn as_mut<'a>(self) -> Option<&'a mut T> {
         // SAFETY: the caller must guarantee that `self` is be valid for
         // a mutable reference if it isn't null.
-        if self.is_null() {
-            None
-        } else {
-            unsafe { Some(&mut *self) }
-        }
+        if self.is_null() { None } else { unsafe { Some(&mut *self) } }
     }
 
     /// Returns a unique reference to the value behind the pointer.
@@ -729,11 +710,7 @@ impl<T: ?Sized> *mut T {
     {
         // SAFETY: the caller must guarantee that `self` meets all the
         // requirements for a reference.
-        if self.is_null() {
-            None
-        } else {
-            Some(unsafe { &mut *(self as *mut MaybeUninit<T>) })
-        }
+        if self.is_null() { None } else { Some(unsafe { &mut *(self as *mut MaybeUninit<T>) }) }
     }
 
     /// Returns whether two pointers are guaranteed to be equal.
