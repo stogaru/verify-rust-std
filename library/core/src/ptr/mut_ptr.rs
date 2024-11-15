@@ -2364,7 +2364,7 @@ mod verify {
         ($type:ty, $proof_name:ident, add) => {
             #[kani::proof_for_contract(<*mut $type>::add)]
             pub fn $proof_name() {
-                // 200 bytes is large enough to cover all pointee types used for testing
+                // 200 bytes are large enough to cover all pointee types used for testing
                 const BUF_SIZE: usize = 200; 
                 let mut generator = kani::PointerGenerator::< BUF_SIZE >::new();                
                 let test_ptr: *mut $type = generator.any_in_bounds().ptr;
@@ -2377,7 +2377,7 @@ mod verify {
         ($type:ty, $proof_name:ident, sub) => {
             #[kani::proof_for_contract(<*mut $type>::sub)]
             pub fn $proof_name() {
-                // 200 bytes is large enough to cover all pointee types used for testing
+                // 200 bytes are large enough to cover all pointee types used for testing
                 const BUF_SIZE: usize = 200; 
                 let mut generator = kani::PointerGenerator::< BUF_SIZE >::new();                
                 let test_ptr: *mut $type = generator.any_in_bounds().ptr;
@@ -2390,7 +2390,7 @@ mod verify {
         ($type:ty, $proof_name:ident, offset) => {
             #[kani::proof_for_contract(<*mut $type>::offset)]
             pub fn $proof_name() {
-                // 200 bytes is large enough to cover all pointee types used for testing
+                // 200 bytes are large enough to cover all pointee types used for testing
                 const BUF_SIZE: usize = 200; 
                 let mut generator = kani::PointerGenerator::< BUF_SIZE >::new();                
                 let test_ptr: *mut $type = generator.any_in_bounds().ptr;
@@ -2410,7 +2410,7 @@ mod verify {
     generate_mut_arithmetic_harness!(i128, check_mut_add_i128, add);
     generate_mut_arithmetic_harness!(isize, check_mut_add_isize, add);
     // Encountered a bug after using the pointer generator; will uncomment once resolved.
-    // generate_mut_arithmetic_harness!(u8, check_mut_add_u8, add);
+    generate_mut_arithmetic_harness!(u8, check_mut_add_u8, add);
     generate_mut_arithmetic_harness!(u16, check_mut_add_u16, add);
     generate_mut_arithmetic_harness!(u32, check_mut_add_u32, add);
     generate_mut_arithmetic_harness!(u64, check_mut_add_u64, add);
