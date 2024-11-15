@@ -804,14 +804,15 @@ impl<T: ?Sized> *mut T {
     /// ```S
     #[stable(feature = "ptr_offset_from", since = "1.47.0")]
     #[rustc_const_stable(feature = "const_ptr_offset_from", since = "1.65.0")]
-    #[inline(always)]
+    #[inline]
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
     #[requires(
-   
-        (mem::size_of::<T>() != 0) &&
+        // Ensuring that subtracting 'origin' from 'self' doesnt result in an overflow
         (self as isize).checked_sub(origin as isize).is_some() &&
+        // Ensuring that sthe distance between 'self' & 'origin' is aligned to T
         (self as isize - origin as isize) % (mem::size_of::<T>() as isize) == 0 &&
-        kani::mem::same_allocation(self, origin)
+        // Ensuring that both pointers point to the same address or are in the same allocation
+        (self as isize == origin as isize || kani::mem::same_allocation(self, origin))
     )]
     #[ensures(|result| *result == (self as isize - origin as isize) / (mem::size_of::<T>() as isize))]
     pub const unsafe fn offset_from(self, origin: *const T) -> isize
@@ -2216,7 +2217,9 @@ mod verify {
     use kani::{PointerGenerator};
     use core::mem;
 
+    // The proof for a unit type panics as offset_from needs the pointee size > 0
     #[kani::proof_for_contract(<*mut ()>::offset_from)]
+    #[kani::should_panic]
     pub fn check_mut_offset_from_unit() {
         let mut val: () = ();
         let src_ptr: *mut () = &mut val;
@@ -2226,53 +2229,74 @@ mod verify {
         }
     }
 
+    // Array size is bound for kani::any_array
+    const ARRAY_LEN: usize = 40;
+
     macro_rules! generate_offset_from_harness {
-        ($type: ty, $proof_name: ident) => {
+        ($type: ty, $proof_name1: ident, $proof_name2: ident) => {
             #[kani::proof_for_contract(<*mut $type>::offset_from)]
-            pub fn $proof_name() {
-                let mut val: $type = kani::any::<$type>();
-                let ptr: *mut $type = &mut val;
-
-                let offset: usize = kani::any_where(|x| *x <= mem::size_of::<$type>());
-                let src_ptr: *mut $type = unsafe { ptr.byte_add(offset) };
-                let offset: usize = kani::any_where(|x| *x <= mem::size_of::<$type>());
-                let dest_ptr: *mut $type = if kani::any() {
-                    let offset: usize = kani::any_where(|x| *x <= mem::size_of::<$type>());
-                    unsafe { ptr.byte_add(offset) }
+            // Below function is for a single element
+            pub fn $proof_name1() {
+                const gen_size: usize = mem::size_of::<$type>();
+                let mut generator1 = PointerGenerator::<gen_size>::new();
+                let mut generator2 = PointerGenerator::<gen_size>::new();
+                let ptr1: *mut $type = generator1.any_in_bounds().ptr;
+                let ptr2: *mut $type = if kani::any() {
+                    generator1.any_alloc_status().ptr
                 } else {
-                    let mut val2: $type = kani::any::<$type>();
-                    &mut val2
-                }; 
-
+                    generator2.any_alloc_status().ptr
+                };
+                
                 unsafe {
-                    src_ptr.offset_from(dest_ptr);
+                    ptr1.offset_from(ptr2);
                 }
 
 
             }
+
+            // Below function is for large arrays
+            pub fn $proof_name2() {
+                const gen_size: usize = mem::size_of::<$type>();
+                let mut generator1 = PointerGenerator::<{ gen_size * ARRAY_LEN }>::new();
+                let mut generator2 = PointerGenerator::<{ gen_size * ARRAY_LEN }>::new();
+                let ptr1: *mut $type = generator1.any_in_bounds().ptr;
+                let ptr2: *mut $type = if kani::any() {
+                    generator1.any_alloc_status().ptr
+                } else {
+                    generator2.any_alloc_status().ptr
+                };
+                
+                unsafe {
+                    ptr1.offset_from(ptr2);
+                }
+
+
+            }
+
         };
     }
 
-    generate_offset_from_harness!(u8, check_mut_offset_from_u8);
-    generate_offset_from_harness!(u16, check_mut_offset_from_u16);
-    generate_offset_from_harness!(u32, check_mut_offset_from_u32);
-    generate_offset_from_harness!(u64, check_mut_offset_from_u64);
-    generate_offset_from_harness!(u128, check_mut_offset_from_u128);
-    generate_offset_from_harness!(usize, check_mut_offset_from_usize);
+    generate_offset_from_harness!(u8, check_mut_offset_from_u8, check_mut_offset_from_u8_array);
+    generate_offset_from_harness!(u16, check_mut_offset_from_u16, check_mut_offset_from_u16_array);
+    generate_offset_from_harness!(u32, check_mut_offset_from_u32, check_mut_offset_from_u32_array);
+    generate_offset_from_harness!(u64, check_mut_offset_from_u64, check_mut_offset_from_u64_array);
+    generate_offset_from_harness!(u128, check_mut_offset_from_u128, check_mut_offset_from_u128_array);
+    generate_offset_from_harness!(usize, check_mut_offset_from_usize, check_mut_offset_from_usize_array);
 
-    generate_offset_from_harness!(i8, check_mut_offset_from_i8);
-    generate_offset_from_harness!(i16, check_mut_offset_from_i16);
-    generate_offset_from_harness!(i32, check_mut_offset_from_i32);
-    generate_offset_from_harness!(i64, check_mut_offset_from_i64);
-    generate_offset_from_harness!(i128, check_mut_offset_from_i128);
-    generate_offset_from_harness!(isize, check_mut_offset_from_isize);
+    generate_offset_from_harness!(i8, check_mut_offset_from_i8, check_mut_offset_from_i8_array);
+    generate_offset_from_harness!(i16, check_mut_offset_from_i16, check_mut_offset_from_i16_array);
+    generate_offset_from_harness!(i32, check_mut_offset_from_i32, check_mut_offset_from_i32_array);
+    generate_offset_from_harness!(i64, check_mut_offset_from_i64, check_mut_offset_from_i64_array);
+    generate_offset_from_harness!(i128, check_mut_offset_from_i128, check_mut_offset_from_i128_array);
+    generate_offset_from_harness!(isize, check_mut_offset_from_isize, check_mut_offset_from_isize_array);
 
-    generate_offset_from_harness!((i8, i8), check_mut_offset_from_tuple_1);
-    generate_offset_from_harness!((f64, bool), check_mut_offset_from_tuple_2);
-    generate_offset_from_harness!((u32, i16, f32), check_mut_offset_from_tuple_3);
+    generate_offset_from_harness!((i8, i8), check_mut_offset_from_tuple_1, check_mut_offset_from_tuple_1_array);
+    generate_offset_from_harness!((f64, bool), check_mut_offset_from_tuple_2, check_mut_offset_from_tuple_2_array);
+    generate_offset_from_harness!((u32, i16, f32), check_mut_offset_from_tuple_3, check_mut_offset_from_tuple_3_array);
     generate_offset_from_harness!(
         ((), bool, u8, u16, i32, f64, i128, usize),
-        check_mut_offset_from_tuple_4
+        check_mut_offset_from_tuple_4,
+        check_mut_offset_from_tuple_4_array
     );
 
 }
