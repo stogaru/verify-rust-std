@@ -2395,6 +2395,7 @@ pub mod verify {
     gen_mut_byte_arith_unit_harness!(byte_sub, check_mut_byte_sub_unit);
     gen_mut_byte_arith_unit_harness!(byte_offset, check_mut_byte_offset_unit);
 
+    // bounding space for PointerGenerator to accommodate 40 elements.
     const ARRAY_LEN: usize = 40;
 
     // generate proof for contracts for byte_add, byte_sub and byte_offset
