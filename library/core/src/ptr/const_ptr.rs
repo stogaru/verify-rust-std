@@ -1998,7 +1998,6 @@ pub mod verify {
     // bounding space for PointerGenerator to accommodate 40 elements.
     const ARRAY_LEN: usize = 40;
 
-
     // generate proof for contracts for byte_add, byte_sub and byte_offset
     // - `$type`: pointee type
     // - `$fn_name`: function for which the contract must be verified
@@ -2108,7 +2107,11 @@ pub mod verify {
     gen_const_byte_arith_harness!(usize, byte_offset, check_const_byte_offset_usize);
     gen_const_byte_arith_harness!((i8, i8), byte_offset, check_const_byte_offset_tuple_1);
     gen_const_byte_arith_harness!((f64, bool), byte_offset, check_const_byte_offset_tuple_2);
-    gen_const_byte_arith_harness!((i32, f64, bool), byte_offset, check_const_byte_offset_tuple_3);
+    gen_const_byte_arith_harness!(
+        (i32, f64, bool),
+        byte_offset,
+        check_const_byte_offset_tuple_3
+    );
     gen_const_byte_arith_harness!(
         (i8, u16, i32, u64, isize),
         byte_offset,
@@ -2179,11 +2182,19 @@ pub mod verify {
     gen_const_byte_arith_harness_for_slice!(i32, byte_offset, check_const_byte_offset_i32_slice);
     gen_const_byte_arith_harness_for_slice!(i64, byte_offset, check_const_byte_offset_i64_slice);
     gen_const_byte_arith_harness_for_slice!(i128, byte_offset, check_const_byte_offset_i128_slice);
-    gen_const_byte_arith_harness_for_slice!(isize, byte_offset, check_const_byte_offset_isize_slice);
+    gen_const_byte_arith_harness_for_slice!(
+        isize,
+        byte_offset,
+        check_const_byte_offset_isize_slice
+    );
     gen_const_byte_arith_harness_for_slice!(u8, byte_offset, check_const_byte_offset_u8_slice);
     gen_const_byte_arith_harness_for_slice!(u16, byte_offset, check_const_byte_offset_u16_slice);
     gen_const_byte_arith_harness_for_slice!(u32, byte_offset, check_const_byte_offset_u32_slice);
     gen_const_byte_arith_harness_for_slice!(u64, byte_offset, check_const_byte_offset_u64_slice);
     gen_const_byte_arith_harness_for_slice!(u128, byte_offset, check_const_byte_offset_u128_slice);
-    gen_const_byte_arith_harness_for_slice!(usize, byte_offset, check_const_byte_offset_usize_slice);
+    gen_const_byte_arith_harness_for_slice!(
+        usize,
+        byte_offset,
+        check_const_byte_offset_usize_slice
+    );
 }
