@@ -2587,4 +2587,50 @@ pub mod verify {
     gen_mut_byte_arith_harness_for_slice!(u64, byte_offset, check_mut_byte_offset_u64_slice);
     gen_mut_byte_arith_harness_for_slice!(u128, byte_offset, check_mut_byte_offset_u128_slice);
     gen_mut_byte_arith_harness_for_slice!(usize, byte_offset, check_mut_byte_offset_usize_slice);
+
+    // code snippet for generating sample trait objects
+    trait TestTrait {}
+
+    struct TestStruct {
+        value: i64,
+    }
+
+    impl TestTrait for TestStruct {}
+
+    macro_rules! gen_mut_byte_arith_harness_for_dyn {
+        (byte_offset, $proof_name:ident) => {
+            #[kani::proof_for_contract(<*mut dyn TestTrait>::byte_offset)]
+            pub fn $proof_name() {
+                let mut test_struct = TestStruct { value: 42 };
+                let trait_object: &mut dyn TestTrait = &mut test_struct;
+                let test_ptr: *mut dyn TestTrait = trait_object;
+
+                let count: isize = kani::any();
+
+                unsafe {
+                    test_ptr.byte_offset(count);
+                }
+            }
+        };
+
+        ($fn_name: ident, $proof_name:ident) => {
+            #[kani::proof_for_contract(<*mut dyn TestTrait>::$fn_name)]
+            pub fn $proof_name() {
+                let mut test_struct = TestStruct { value: 42 };
+                let trait_object: &mut dyn TestTrait = &mut test_struct;
+                let test_ptr: *mut dyn TestTrait = trait_object;
+
+                //byte_add and byte_sub need count to be usize unlike byte_offset
+                let count: usize = kani::any();
+
+                unsafe {
+                    test_ptr.$fn_name(count);
+                }
+            }
+        };
+    } 
+    
+    gen_mut_byte_arith_harness_for_dyn!(byte_add, check_mut_byte_add_dyn);
+    gen_mut_byte_arith_harness_for_dyn!(byte_sub, check_mut_byte_sub_dyn); 
+    gen_mut_byte_arith_harness_for_dyn!(byte_offset, check_mut_byte_offset_dyn);
 }
