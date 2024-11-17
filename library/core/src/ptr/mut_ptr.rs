@@ -2599,7 +2599,9 @@ pub mod verify {
 
     macro_rules! gen_mut_byte_arith_harness_for_dyn {
         (byte_offset, $proof_name:ident) => {
-            #[kani::proof_for_contract(<*mut dyn TestTrait>::byte_offset)]
+            // Workaround: Directly calling the method on `<*mut dyn TestTrait>` 
+            // is invalid, so this alternative approach is used.
+            #[kani::proof_for_contract(<*mut TestStruct>::byte_offset)]
             pub fn $proof_name() {
                 let mut test_struct = TestStruct { value: 42 };
                 let trait_object: &mut dyn TestTrait = &mut test_struct;
@@ -2614,7 +2616,9 @@ pub mod verify {
         };
 
         ($fn_name: ident, $proof_name:ident) => {
-            #[kani::proof_for_contract(<*mut dyn TestTrait>::$fn_name)]
+            // Workaround: Directly calling the method on `<*mut dyn TestTrait>` 
+            // is invalid, so this alternative approach is used.
+            #[kani::proof_for_contract(<*mut TestStruct>::$fn_name)]
             pub fn $proof_name() {
                 let mut test_struct = TestStruct { value: 42 };
                 let trait_object: &mut dyn TestTrait = &mut test_struct;
