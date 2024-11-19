@@ -13,6 +13,8 @@ use safety::{ensures, requires};
 
 #[cfg(kani)]
 use crate::kani;
+#[cfg(kani)]
+use crate::ub_checks;
 
 /// `*mut T` but non-zero and [covariant].
 ///
@@ -137,6 +139,8 @@ impl<T: Sized> NonNull<T> {
     #[must_use]
     #[unstable(feature = "ptr_as_uninit", issue = "75402")]
     #[rustc_const_unstable(feature = "ptr_as_uninit", issue = "75402")]
+    #[requires(ub_checks::can_dereference(self.as_ptr()))]  // Ensure the pointer is valid to create a reference.
+    #[ensures(|result: &&MaybeUninit<T>| core::ptr::eq(*result, self.cast().as_ptr()))]  // Ensure returned reference points to the correct memory location.
     pub const unsafe fn as_uninit_ref<'a>(self) -> &'a MaybeUninit<T> {
         // SAFETY: the caller must guarantee that `self` meets all the
         // requirements for a reference.
@@ -161,6 +165,8 @@ impl<T: Sized> NonNull<T> {
     #[must_use]
     #[unstable(feature = "ptr_as_uninit", issue = "75402")]
     #[rustc_const_unstable(feature = "ptr_as_uninit", issue = "75402")]
+    #[requires(ub_checks::can_dereference(self.as_ptr()))]  // Ensure pointer is valid to create a mutable reference.
+    #[ensures(|result: &&mut MaybeUninit<T>| core::ptr::eq(*result, self.cast().as_ptr()))]  // Ensure the returned reference points to the correct memory.
     pub const unsafe fn as_uninit_mut<'a>(self) -> &'a mut MaybeUninit<T> {
         // SAFETY: the caller must guarantee that `self` meets all the
         // requirements for a reference.
@@ -384,6 +390,8 @@ impl<T: ?Sized> NonNull<T> {
     #[rustc_const_stable(feature = "const_nonnull_as_ref", since = "1.73.0")]
     #[must_use]
     #[inline(always)]
+    #[requires(ub_checks::can_dereference(self.as_ptr() as *const()))] // Ensure input is convertible to a reference
+    #[ensures(|result: &&T| core::ptr::eq(*result, self.as_ptr()))]  // Ensure returned reference matches pointer
     pub const unsafe fn as_ref<'a>(&self) -> &'a T {
         // SAFETY: the caller must guarantee that `self` meets all the
         // requirements for a reference.
@@ -422,6 +430,9 @@ impl<T: ?Sized> NonNull<T> {
     #[rustc_const_stable(feature = "const_ptr_as_ref", since = "1.83.0")]
     #[must_use]
     #[inline(always)]
+    #[requires(ub_checks::can_dereference(self.as_ptr() as *const()))]
+    // verify result (a mutable reference) is still associated with the same memory address as the raw pointer stored in self
+    #[ensures(|result: &&mut T| core::ptr::eq(*result, self.as_ptr()))]
     pub const unsafe fn as_mut<'a>(&mut self) -> &'a mut T {
         // SAFETY: the caller must guarantee that `self` meets all the
         // requirements for a mutable reference.
@@ -568,7 +579,7 @@ impl<T: ?Sized> NonNull<T> {
     #[must_use = "returns a new pointer rather than modifying its argument"]
     #[stable(feature = "non_null_convenience", since = "1.80.0")]
     #[rustc_const_stable(feature = "non_null_convenience", since = "1.80.0")]
-    #[requires(count.checked_mul(core::mem::size_of::<T>()).is_some() 
+    #[requires(count.checked_mul(core::mem::size_of::<T>()).is_some()
         && count * core::mem::size_of::<T>() <= isize::MAX as usize
         && (self.pointer as isize).checked_add(count as isize * core::mem::size_of::<T>() as isize).is_some() // check wrapping add
         && kani::mem::same_allocation(self.pointer, self.pointer.wrapping_offset(count as isize)))]
@@ -910,6 +921,7 @@ impl<T: ?Sized> NonNull<T> {
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
     #[stable(feature = "non_null_convenience", since = "1.80.0")]
     #[rustc_const_stable(feature = "non_null_convenience", since = "1.80.0")]
+    #[requires(ub_checks::can_dereference(self.pointer))]
     pub const unsafe fn read(self) -> T
     where
         T: Sized,
@@ -931,6 +943,7 @@ impl<T: ?Sized> NonNull<T> {
     #[inline]
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
     #[stable(feature = "non_null_convenience", since = "1.80.0")]
+    #[requires(ub_checks::can_dereference(self.pointer))]
     pub unsafe fn read_volatile(self) -> T
     where
         T: Sized,
@@ -951,6 +964,7 @@ impl<T: ?Sized> NonNull<T> {
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
     #[stable(feature = "non_null_convenience", since = "1.80.0")]
     #[rustc_const_stable(feature = "non_null_convenience", since = "1.80.0")]
+    #[requires(ub_checks::can_read_unaligned(self.pointer))]
     pub const unsafe fn read_unaligned(self) -> T
     where
         T: Sized,
@@ -1219,9 +1233,9 @@ impl<T: ?Sized> NonNull<T> {
         let stride = crate::mem::size_of::<T>();
         // ZSTs
         if stride == 0 {
-            if self.pointer.addr() % align == 0 { 
+            if self.pointer.addr() % align == 0 {
                 return *result == 0;
-            } else { 
+            } else {
                 return *result == usize::MAX;
             }
         }
@@ -1233,8 +1247,8 @@ impl<T: ?Sized> NonNull<T> {
         // requires computing gcd(a, stride), which is too expensive without
         // quantifiers (https://model-checking.github.io/kani/rfc/rfcs/0010-quantifiers.html).
         // This should be updated once quantifiers are available.
-        if (align % stride != 0 && *result == usize::MAX) { 
-            return true; 
+        if (align % stride != 0 && *result == usize::MAX) {
+            return true;
         }
         // If we reach this case, either:
         //  - align % stride == 0 and self.pointer.addr() % stride == 0, so it is definitely possible to align the pointer
@@ -1637,6 +1651,11 @@ impl<T> NonNull<[T]> {
     #[must_use]
     #[unstable(feature = "ptr_as_uninit", issue = "75402")]
     #[rustc_const_unstable(feature = "ptr_as_uninit", issue = "75402")]
+    #[requires(self.as_ptr().cast::<T>().align_offset(core::mem::align_of::<T>()) == 0)] // Ensure the pointer is properly aligned
+    #[requires(self.len().checked_mul(core::mem::size_of::<T>()).is_some() && self.len() * core::mem::size_of::<T>() <= isize::MAX as usize)] // Ensure the slice size does not exceed isize::MAX
+    #[requires(kani::mem::same_allocation(self.as_ptr() as *const(), self.as_ptr().byte_add(self.len() * core::mem::size_of::<T>()) as *const()))] // Ensure the slice is contained within a single allocation
+    #[ensures(|result: &&[MaybeUninit<T>]| result.len() == self.len())] // Length check
+    #[ensures(|result: &&[MaybeUninit<T>]| core::ptr::eq(result.as_ptr(), self.cast().as_ptr()))] // Ensure the memory addresses match.
     pub const unsafe fn as_uninit_slice<'a>(self) -> &'a [MaybeUninit<T>] {
         // SAFETY: the caller must uphold the safety contract for `as_uninit_slice`.
         unsafe { slice::from_raw_parts(self.cast().as_ptr(), self.len()) }
@@ -1702,6 +1721,11 @@ impl<T> NonNull<[T]> {
     #[must_use]
     #[unstable(feature = "ptr_as_uninit", issue = "75402")]
     #[rustc_const_unstable(feature = "ptr_as_uninit", issue = "75402")]
+    #[requires(self.as_ptr().cast::<T>().align_offset(core::mem::align_of::<T>()) == 0)] // Ensure the pointer is properly aligned
+    #[requires(self.len().checked_mul(core::mem::size_of::<T>()).is_some() && self.len() * core::mem::size_of::<T>() <= isize::MAX as usize)] // Ensure the slice size does not exceed isize::MAX
+    #[requires(kani::mem::same_allocation(self.as_ptr() as *const(), self.as_ptr().byte_add(self.len() * core::mem::size_of::<T>()) as *const()))] // Ensure the slice is contained within a single allocation
+    #[ensures(|result: &&mut [MaybeUninit<T>]| result.len() == self.len())] // Length check
+    #[ensures(|result: &&mut [MaybeUninit<T>]| core::ptr::eq(result.as_ptr(), self.cast().as_ptr()))]  // Address check
     pub const unsafe fn as_uninit_slice_mut<'a>(self) -> &'a mut [MaybeUninit<T>] {
         // SAFETY: the caller must uphold the safety contract for `as_uninit_slice_mut`.
         unsafe { slice::from_raw_parts_mut(self.cast().as_ptr(), self.len()) }
@@ -1730,6 +1754,7 @@ impl<T> NonNull<[T]> {
     /// ```
     #[unstable(feature = "slice_ptr_get", issue = "74265")]
     #[inline]
+    #[requires(ub_checks::can_dereference(self.as_ptr()))] // Ensure self can be dereferenced
     pub unsafe fn get_unchecked_mut<I>(self, index: I) -> NonNull<I::Output>
     where
         I: SliceIndex<[T]>,
@@ -1866,6 +1891,79 @@ mod verify {
         let maybe_null_ptr =  if kani::any() { xptr as *mut i32 } else { null_mut() };
         let _ = NonNull::new(maybe_null_ptr);
     }
+    
+    // pub const unsafe fn read(self) -> T where T: Sized
+    #[kani::proof_for_contract(NonNull::read)]
+    pub fn non_null_check_read() {
+        let ptr_u8: *mut u8 = &mut kani::any();
+        let nonnull_ptr_u8 = NonNull::new(ptr_u8).unwrap();
+        unsafe {
+            let result = nonnull_ptr_u8.read();
+            kani::assert(*ptr_u8 == result, "read returns the correct value");
+        }
+
+        // array example
+        const ARR_LEN: usize = 10000;
+        let mut generator = PointerGenerator::<ARR_LEN>::new();
+        let raw_ptr: *mut i8 = generator.any_in_bounds().ptr;
+        let nonnull_ptr = unsafe { NonNull::new(raw_ptr).unwrap()};
+        unsafe {
+            let result = nonnull_ptr.read();
+            kani::assert( *nonnull_ptr.as_ptr() == result, "read returns the correct value");
+        }
+    }
+
+    // pub unsafe fn read_volatile(self) -> T where T: Sized
+    #[kani::proof_for_contract(NonNull::read_volatile)]
+    pub fn non_null_check_read_volatile() {
+        let ptr_u8: *mut u8 = &mut kani::any();
+        let nonnull_ptr_u8 = NonNull::new(ptr_u8).unwrap();
+        unsafe {
+            let result = nonnull_ptr_u8.read_volatile();
+            kani::assert(*ptr_u8 == result, "read returns the correct value");
+        }
+
+        // array example
+        const ARR_LEN: usize = 10000;
+        let mut generator = PointerGenerator::<ARR_LEN>::new();
+        let raw_ptr: *mut i8 = generator.any_in_bounds().ptr;
+        let nonnull_ptr = unsafe { NonNull::new(raw_ptr).unwrap()};
+        unsafe {
+            let result = nonnull_ptr.read_volatile();
+            kani::assert( *nonnull_ptr.as_ptr() == result, "read returns the correct value");
+        }
+    }
+
+    #[repr(packed, C)]
+    struct Packed {
+        _padding: u8,
+        unaligned: u32,
+    }
+
+    // pub const unsafe fn read_unaligned(self) -> T where T: Sized
+    #[kani::proof_for_contract(NonNull::read_unaligned)]
+    pub fn non_null_check_read_unaligned() {
+        // unaligned pointer
+        let mut generator = PointerGenerator::<10000>::new();
+        let unaligned_ptr: *mut u8 = generator.any_in_bounds().ptr;
+        let unaligned_nonnull_ptr = NonNull::new(unaligned_ptr).unwrap();
+        unsafe {
+            let result = unaligned_nonnull_ptr.read_unaligned();
+            kani::assert( *unaligned_nonnull_ptr.as_ptr() == result, "read returns the correct value");
+        }
+
+        // read an unaligned value from a packed struct
+        let unaligned_value: u32 = kani::any();
+        let packed = Packed {
+            _padding: kani::any::<u8>(),
+            unaligned: unaligned_value,
+        };
+
+        let unaligned_ptr = ptr::addr_of!(packed.unaligned);
+        let nonnull_packed_ptr = NonNull::new(unaligned_ptr as *mut u32).unwrap();
+        let v = unsafe { nonnull_packed_ptr.read_unaligned() };
+        assert_eq!(v, unaligned_value);
+    }
 
     // pub const unsafe fn add(self, count: usize) -> Self
     #[kani::proof_for_contract(NonNull::add)]
@@ -1875,8 +1973,8 @@ mod verify {
         let raw_ptr: *mut i8 = generator.any_in_bounds().ptr;
         let ptr = unsafe { NonNull::new(raw_ptr).unwrap()};
         // Create a non-deterministic count value
-        let count: usize = kani::any();  
-        
+        let count: usize = kani::any();
+
         unsafe {
             let result = ptr.add(count);
         }
@@ -1884,7 +1982,7 @@ mod verify {
 
     // pub fn addr(self) -> NonZero<usize>
     #[kani::proof_for_contract(NonNull::addr)]
-    pub fn non_null_check_addr() {  
+    pub fn non_null_check_addr() {
         // Create NonNull pointer & get pointer address
         let x = kani::any::<usize>() as *mut i32;
         let Some(nonnull_xptr) = NonNull::new(x) else { return; };
@@ -1897,7 +1995,7 @@ mod verify {
         // Create NonNull pointer
         let x = kani::any::<usize>() as *mut i32;
         let Some(nonnull_xptr) = NonNull::new(x) else { return; };
-    
+
         // Call align_offset with valid align value
         let align: usize = kani::any();
         kani::assume(align.is_power_of_two());
@@ -1914,8 +2012,110 @@ mod verify {
 
         // Generate align value that is not necessarily a power of two
         let invalid_align: usize = kani::any();
-    
+
         // Trigger panic
         let offset = nonnull_xptr.align_offset(invalid_align);
+    }
+
+    #[kani::proof_for_contract(NonNull::as_mut)]
+    pub fn non_null_check_as_mut() {
+        let mut x: i32 = kani::any();
+        if let Some(mut ptr) = NonNull::new(&mut x as *mut i32) {
+            unsafe {
+                let result = ptr.as_mut();
+            }
+        }
+    }
+
+    #[kani::proof_for_contract(NonNull::as_ref)]
+    pub fn non_null_check_as_ref() {
+        let mut x: i32 = kani::any();
+        if let Some(ptr) = NonNull::new(&mut x as *mut i32) {
+            unsafe {
+                let _ = ptr.as_ref();
+            }
+        }
+    }
+
+    #[kani::proof_for_contract(NonNull::as_uninit_mut)]
+    pub fn non_null_check_as_uninit_mut() {
+        use core::mem::MaybeUninit;
+
+        // Create an uninitialized MaybeUninit value
+        let mut uninit: MaybeUninit<i32> = MaybeUninit::uninit();
+        let mut ptr = NonNull::new(uninit.as_mut_ptr()).unwrap();
+
+        unsafe {
+            let _ = ptr.as_uninit_mut();
+        }
+    }
+
+    #[kani::proof_for_contract(NonNull::as_uninit_ref)]
+    pub fn non_null_check_as_uninit_ref() {
+        use core::mem::MaybeUninit;
+
+        // Create an uninitialized MaybeUninit value
+        let mut uninit: MaybeUninit<i32> = MaybeUninit::uninit();
+        let ptr = NonNull::new(uninit.as_mut_ptr()).unwrap();
+
+        unsafe {
+            let uninit_ref = ptr.as_uninit_ref();
+        }
+    }
+
+    #[kani::proof_for_contract(NonNull::as_uninit_slice)]
+    pub fn non_null_check_as_uninit_slice() {
+        use core::mem::MaybeUninit;
+
+        const SIZE: usize = 100000;
+        let arr: [MaybeUninit<i32>; SIZE] = MaybeUninit::uninit_array();
+        let slice: &[MaybeUninit<i32>] = kani::slice::any_slice_of_array(&arr);
+        let ptr = NonNull::slice_from_raw_parts(
+            NonNull::new(slice.as_ptr() as *mut MaybeUninit<i32>).unwrap(),
+            slice.len(),
+        );
+
+        unsafe {
+            let _ = ptr.as_uninit_slice();
+        }
+    }
+
+    #[kani::proof_for_contract(NonNull::as_uninit_slice_mut)]
+    pub fn non_null_check_as_uninit_slice_mut() {
+        use core::mem::MaybeUninit;
+
+        const SIZE: usize = 100000;
+        let mut arr: [MaybeUninit<i32>; SIZE] = MaybeUninit::uninit_array();
+        let slice: &[MaybeUninit<i32>] = kani::slice::any_slice_of_array(&mut arr);
+        let ptr = NonNull::slice_from_raw_parts(
+            NonNull::new(slice.as_ptr() as *mut MaybeUninit<i32>).unwrap(),
+            SIZE,
+        );
+
+        unsafe {
+            let _ = ptr.as_uninit_slice_mut();
+        }
+    }
+
+    #[kani::proof_for_contract(NonNull::get_unchecked_mut)]
+    pub fn non_null_check_get_unchecked_mut() {
+        const ARR_SIZE: usize = 100000;
+        let mut arr: [i32; ARR_SIZE] = kani::any();
+        let raw_ptr = arr.as_mut_ptr();
+        let ptr = NonNull::slice_from_raw_parts(
+            NonNull::new(raw_ptr).unwrap(),
+            ARR_SIZE,
+        );
+        let lower = kani::any_where(|x| *x < ARR_SIZE);
+        let upper = kani::any_where(|x| *x < ARR_SIZE && *x >= lower);
+        unsafe {
+            // NOTE: The `index` parameter cannot be used in the function contracts without being moved.
+            // Since the `SliceIndex` trait does not guarantee that `index` implements `Clone` or `Copy`,
+            // it cannot be reused after being consumed in the precondition. To comply with Rust's ownership
+            // rules and ensure `index` is only used once, the in-bounds check is moved to the proof harness
+            // as a workaround.
+            kani::assume(ptr.as_ref().get(lower..upper).is_some());
+            let _ = ptr.get_unchecked_mut(lower..upper);
+        }
     }
 }
