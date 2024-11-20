@@ -5,6 +5,9 @@ use core::ascii::EscapeDefault;
 use crate::fmt::{self, Write};
 use crate::{ascii, iter, mem, ops};
 
+#[cfg(kani)]
+use crate::kani;
+
 #[cfg(not(test))]
 impl [u8] {
     /// Checks if all bytes in this slice are within the ASCII range.
@@ -431,4 +434,21 @@ const fn is_ascii(s: &[u8]) -> bool {
     let last_word = unsafe { (start.add(len - USIZE_SIZE) as *const usize).read_unaligned() };
 
     !contains_nonascii(last_word)
+}
+
+#[cfg(kani)]
+#[unstable(feature = "kani", issue = "none")]
+mod verify {
+    use crate::kani;
+
+    // verify function `const fn is_ascii(s: &[u8]) -> bool`.
+    #[kani::proof]
+    #[kani::unwind(9)]
+    #[kani::stub_verified(<*const usize>::add)]
+    fn check_is_ascii() {
+        const ARRAY_SIZE: usize = 8;
+        let arr: [u8; ARRAY_SIZE] = kani::Arbitrary::any_array();
+        let arr_slice: &[u8] = &arr;
+        arr_slice.is_ascii();
+    }   
 }
