@@ -2372,7 +2372,7 @@ pub mod verify {
             #[kani::proof_for_contract(<*mut ()>::byte_offset)]
             pub fn $proof_name() {
                 let mut val = ();
-                let ptr: *mut () = &mut val as *mut ();
+                let ptr: *mut () = &mut val;
                 let count: isize = kani::any();
                 unsafe {
                     ptr.byte_offset(count);
@@ -2384,7 +2384,7 @@ pub mod verify {
             #[kani::proof_for_contract(<*mut ()>::$fn_name)]
             pub fn $proof_name() {
                 let mut val = ();
-                let ptr: *mut () = &mut val as *mut ();
+                let ptr: *mut () = &mut val;
                 //byte_add and byte_sub need count to be usize unlike byte_offset
                 let count: usize = kani::any();
                 unsafe {
@@ -2416,9 +2416,9 @@ pub mod verify {
                     PointerGenerator::<{ mem::size_of::<$type>() * ARRAY_LEN }>::new();
 
                 let ptr: *mut $type = if kani::any() {
-                    generator1.any_in_bounds().ptr as *mut $type
+                    generator1.any_in_bounds().ptr
                 } else {
-                    generator2.any_in_bounds().ptr as *mut $type
+                    generator2.any_in_bounds().ptr
                 };
                 let count: isize = kani::any();
 
@@ -2438,9 +2438,9 @@ pub mod verify {
                     PointerGenerator::<{ mem::size_of::<$type>() * ARRAY_LEN }>::new();
 
                 let ptr: *mut $type = if kani::any() {
-                    generator1.any_in_bounds().ptr as *mut $type
+                    generator1.any_in_bounds().ptr
                 } else {
-                    generator2.any_in_bounds().ptr as *mut $type
+                    generator2.any_in_bounds().ptr
                 };
 
                 //byte_add and byte_sub need count to be usize unlike byte_offset
@@ -2522,7 +2522,7 @@ pub mod verify {
             pub fn $proof_name() {
                 let mut arr: [$type; ARRAY_LEN] = kani::Arbitrary::any_array();
                 let slice: &mut [$type] = kani::slice::any_slice_of_array_mut(&mut arr);
-                let ptr: *mut [$type] = slice as *mut [$type];
+                let ptr: *mut [$type] = slice;
 
                 let count: isize = kani::any();
 
@@ -2537,7 +2537,7 @@ pub mod verify {
             pub fn $proof_name() {
                 let mut arr: [$type; ARRAY_LEN] = kani::Arbitrary::any_array();
                 let slice: &mut [$type] = kani::slice::any_slice_of_array_mut(&mut arr);
-                let ptr: *mut [$type] = slice as *mut [$type];
+                let ptr: *mut [$type] = slice;
 
                 //byte_add and byte_sub need count to be usize unlike byte_offset
                 let count: usize = kani::any();
