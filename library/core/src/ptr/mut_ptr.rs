@@ -2319,7 +2319,7 @@ impl<T: ?Sized> PartialOrd for *mut T {
 #[unstable(feature = "kani", issue = "none")]
 mod verify {
     use crate::kani;
-    use kani::{PointerGenerator};
+    use kani::PointerGenerator;
     use core::mem;
 
     // The proof for a unit type panics as offset_from needs the pointee size > 0
