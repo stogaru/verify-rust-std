@@ -832,7 +832,7 @@ impl<T: ?Sized> *mut T {
     /// ```S
     #[stable(feature = "ptr_offset_from", since = "1.47.0")]
     #[rustc_const_stable(feature = "const_ptr_offset_from", since = "1.65.0")]
-    #[inline]
+    #[inline(always)]
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
     #[requires(
         // Ensuring that subtracting 'origin' from 'self' doesnt result in an overflow
