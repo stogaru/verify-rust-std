@@ -4,8 +4,8 @@ use crate::intrinsics::const_eval_select;
 use crate::mem::SizedTypeProperties;
 use crate::slice::{self, SliceIndex};
 use safety::{ensures, requires};
-
 #[cfg(kani)]
+use crate::kani;
 
 impl<T: ?Sized> *mut T {
     /// Returns `true` if the pointer is null.
