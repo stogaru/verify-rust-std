@@ -2372,8 +2372,6 @@ mod verify {
                 unsafe {
                     ptr1.offset_from(ptr2);
                 }
-
-
             }
 
         };
