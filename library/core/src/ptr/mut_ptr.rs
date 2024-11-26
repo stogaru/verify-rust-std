@@ -463,19 +463,18 @@ impl<T: ?Sized> *mut T {
     #[rustc_const_stable(feature = "const_pointer_byte_offsets", since = "1.75.0")]
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
     #[requires(
-        // If the size of the pointee is zero, then `count` must also be zero
-        (mem::size_of_val_raw(self) == 0 && count == 0) ||
-        // If the size of the pointee is not zero, then ensure that adding `count`
-        // bytes doesn't cause overflow and that both pointers `self` and the result
-        // are pointing to the same address or in the same allocation
+        // If count is zero, any pointer is valid including null pointer.
+        (count == 0) || 
+        // Else if count is not zero, then ensure that subtracting `count` doesn't 
+        // cause overflow and that both pointers `self` and the result are in the 
+        // same allocation 
         (mem::size_of_val_raw(self) != 0 &&
-            (self as *mut u8 as isize).checked_add(count).is_some() &&
-            ((self as *mut u8 as usize) == (self.wrapping_byte_offset(count) as *mut u8 as usize) ||
-                kani::mem::same_allocation(self as *const T, self.wrapping_byte_offset(count) as *const T)))
+            (self.addr() as isize).checked_add(count).is_some() && 
+            kani::mem::same_allocation(self as *const T, self.wrapping_byte_offset(count) as *const T))
     )]
     #[ensures(|result|
         // The resulting pointer should either be unchanged or still point to the same allocation
-        ((self as *mut u8 as usize) == (*result as *mut u8 as usize)) ||
+        (self.addr() == (*result).addr()) ||
         (kani::mem::same_allocation(self as *const T, *result as *const T))
     )]
     pub const unsafe fn byte_offset(self, count: isize) -> Self {
@@ -1074,19 +1073,18 @@ impl<T: ?Sized> *mut T {
     #[rustc_const_stable(feature = "const_pointer_byte_offsets", since = "1.75.0")]
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
     #[requires(
-        // If the size of the pointee is zero, then `count` must also be zero
-        (mem::size_of_val_raw(self) == 0 && count == 0) ||
-        // If the size of the pointee is not zero, then ensure that adding `count`
-        // bytes doesn't cause overflow and that both pointers `self` and the result
-        // are pointing to the same address or in the same allocation
+        // If count is zero, any pointer is valid including null pointer.
+        (count == 0) || 
+        // Else if count is not zero, then ensure that subtracting `count` doesn't 
+        // cause overflow and that both pointers `self` and the result are in the 
+        // same allocation 
         (mem::size_of_val_raw(self) != 0 &&
-            (self as *mut u8 as isize).checked_add(count as isize).is_some() &&
-            ((self as *mut u8 as usize) == (self.wrapping_byte_add(count) as *mut u8 as usize) ||
-                kani::mem::same_allocation(self as *const T, self.wrapping_byte_add(count) as *const T)))
+            (self.addr() as isize).checked_add(count as isize).is_some() && 
+            kani::mem::same_allocation(self as *const T, self.wrapping_byte_add(count) as *const T))
     )]
     #[ensures(|result|
         // The resulting pointer should either be unchanged or still point to the same allocation
-        ((self as *mut u8 as usize) == (*result as *mut u8 as usize)) ||
+        (self.addr() == (*result).addr()) ||
         (kani::mem::same_allocation(self as *const T, *result as *const T))
     )]
     pub const unsafe fn byte_add(self, count: usize) -> Self {
@@ -1205,19 +1203,18 @@ impl<T: ?Sized> *mut T {
     #[rustc_const_stable(feature = "const_pointer_byte_offsets", since = "1.75.0")]
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
     #[requires(
-        // If the size of the pointee is zero, then `count` must also be zero
-        (mem::size_of_val_raw(self) == 0 && count == 0) ||
-        // If the size of the pointee is not zero then ensure that adding `count`
-        // bytes doesn't cause overflow and that both pointers `self` and the result
-        // would be pointing to the same address or in the same allocation
+        // If count is zero, any pointer is valid including null pointer.
+        (count == 0) || 
+        // Else if count is not zero, then ensure that subtracting `count` doesn't 
+        // cause overflow and that both pointers `self` and the result are in the 
+        // same allocation 
         (mem::size_of_val_raw(self) != 0 &&
-            (self as *mut u8 as isize).checked_sub(count as isize).is_some() &&
-            ((self as *mut u8 as usize) == (self.wrapping_byte_sub(count) as *mut u8 as usize) ||
-                kani::mem::same_allocation(self as *const T, self.wrapping_byte_sub(count) as *const T)))
+            (self.addr() as isize).checked_sub(count as isize).is_some() && 
+            kani::mem::same_allocation(self as *const T, self.wrapping_byte_sub(count) as *const T))
     )]
     #[ensures(|result|
-         // The resulting pointer should either be unchanged or still point to the same allocation
-        ((self as *mut u8 as isize) == (*result as *mut u8 as isize)) ||
+        // The resulting pointer should either be unchanged or still point to the same allocation
+        (self.addr() == (*result).addr()) ||
         (kani::mem::same_allocation(self as *const T, *result as *const T))
     )]
     pub const unsafe fn byte_sub(self, count: usize) -> Self {

@@ -465,19 +465,18 @@ impl<T: ?Sized> *const T {
     #[rustc_const_stable(feature = "const_pointer_byte_offsets", since = "1.75.0")]
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
     #[requires(
-        // If the size of the pointee is zero, then `count` must also be zero
-        (mem::size_of_val_raw(self) == 0 && count == 0) ||
-        // If the size of the pointee is not zero, then ensure that adding `count`
-        // bytes doesn't cause overflow and that both pointers `self` and the result
-        // are pointing to the same address or in the same allocation
+        // If count is zero, any pointer is valid including null pointer.
+        (count == 0) ||
+        // Else if count is not zero, then ensure that adding `count` doesn't cause 
+        // overflow and that both pointers `self` and the result are in the same 
+        // allocation 
         (mem::size_of_val_raw(self) != 0 &&
-            (self as *const u8 as isize).checked_add(count).is_some() &&
-            ((self as *const u8 as usize) == (self.wrapping_byte_offset(count) as *const u8 as usize) ||
-                kani::mem::same_allocation(self, self.wrapping_byte_offset(count))))
+            (self.addr() as isize).checked_add(count).is_some() &&
+            kani::mem::same_allocation(self, self.wrapping_byte_offset(count)))
     )]
     #[ensures(|result|
         // The resulting pointer should either be unchanged or still point to the same allocation
-        ((self as *const u8 as usize) == (*result as *const u8 as usize)) ||
+        (self.addr() == (*result).addr()) ||
         (kani::mem::same_allocation(self, *result))
     )]
     pub const unsafe fn byte_offset(self, count: isize) -> Self {
@@ -1004,19 +1003,18 @@ impl<T: ?Sized> *const T {
     #[rustc_const_stable(feature = "const_pointer_byte_offsets", since = "1.75.0")]
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
     #[requires(
-        // If the size of the pointee is zero, then `count` must also be zero
-        (mem::size_of_val_raw(self) == 0 && count == 0) ||
-        // If the size of the pointee is not zero, then ensure that adding `count`
-        // bytes doesn't cause overflow and that both pointers `self` and the result
-        // are pointing to the same address or in the same allocation
+        // If count is zero, any pointer is valid including null pointer.
+        (count == 0) || 
+        // Else if count is not zero, then ensure that adding `count` doesn't cause 
+        // overflow and that both pointers `self` and the result are in the same 
+        // allocation 
         (mem::size_of_val_raw(self) != 0 &&
-            (self as *const u8 as isize).checked_add(count as isize).is_some() &&
-            ((self as *const u8 as usize) == (self.wrapping_byte_add(count) as *const u8 as usize) ||
-                kani::mem::same_allocation(self, self.wrapping_byte_add(count))))
+            (self.addr() as isize).checked_add(count as isize).is_some() && 
+            kani::mem::same_allocation(self, self.wrapping_byte_add(count)))
     )]
     #[ensures(|result|
         // The resulting pointer should either be unchanged or still point to the same allocation
-        ((self as *const u8 as usize) == (*result as *const u8 as usize)) ||
+        (self.addr() == (*result).addr()) ||
         (kani::mem::same_allocation(self, *result))
     )]
     pub const unsafe fn byte_add(self, count: usize) -> Self {
@@ -1135,19 +1133,18 @@ impl<T: ?Sized> *const T {
     #[rustc_const_stable(feature = "const_pointer_byte_offsets", since = "1.75.0")]
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
     #[requires(
-        // If the size of the pointee is zero, then `count` must also be zero
-        (mem::size_of_val_raw(self) == 0 && count == 0) ||
-        // If the size of the pointee is not zero then ensure that adding `count`
-        // bytes doesn't cause overflow and that both pointers `self` and the result
-        // would be pointing to the same address or in the same allocation
+        // If count is zero, any pointer is valid including null pointer.
+        (count == 0) || 
+        // Else if count is not zero, then ensure that subtracting `count` doesn't 
+        // cause overflow and that both pointers `self` and the result are in the 
+        // same allocation 
         (mem::size_of_val_raw(self) != 0 &&
-            (self as *const u8 as isize).checked_sub(count as isize).is_some() &&
-            ((self as *const u8 as usize) == (self.wrapping_byte_sub(count) as *const u8 as usize) ||
-                kani::mem::same_allocation(self, self.wrapping_byte_sub(count))))
+            (self.addr() as isize).checked_sub(count as isize).is_some() && 
+            kani::mem::same_allocation(self, self.wrapping_byte_sub(count)))
     )]
     #[ensures(|result|
-         // The resulting pointer should either be unchanged or still point to the same allocation
-        ((self as *const u8 as isize) == (*result as *const u8 as isize)) ||
+        // The resulting pointer should either be unchanged or still point to the same allocation
+        (self.addr() == (*result).addr()) ||
         (kani::mem::same_allocation(self, *result))
     )]
     pub const unsafe fn byte_sub(self, count: usize) -> Self {
@@ -1982,7 +1979,7 @@ mod verify {
         }
     }
 
-    // Array size bound for kani::any_array
+    // bounding space for PointerGenerator to accommodate 40 elements.
     const ARRAY_LEN: usize = 40;
 
     macro_rules! generate_offset_from_harness {
@@ -2142,9 +2139,6 @@ mod verify {
     gen_const_byte_arith_harness_for_unit!(byte_add, check_const_byte_add_unit);
     gen_const_byte_arith_harness_for_unit!(byte_sub, check_const_byte_sub_unit);
     gen_const_byte_arith_harness_for_unit!(byte_offset, check_const_byte_offset_unit);
-
-    // bounding space for PointerGenerator to accommodate 40 elements.
-    const ARRAY_LEN: usize = 40;
 
     // generate proof for contracts for byte_add, byte_sub and byte_offset
     // - `$type`: pointee type
