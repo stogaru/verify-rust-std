@@ -2588,7 +2588,6 @@ pub mod verify {
     gen_mut_byte_arith_harness_for_slice!(u128, byte_offset, check_mut_byte_offset_u128_slice);
     gen_mut_byte_arith_harness_for_slice!(usize, byte_offset, check_mut_byte_offset_usize_slice);
 
-    // code snippet for generating sample trait objects
     trait TestTrait {}
 
     struct TestStruct {
@@ -2599,9 +2598,11 @@ pub mod verify {
 
     macro_rules! gen_mut_byte_arith_harness_for_dyn {
         (byte_offset, $proof_name:ident) => {
-            // Workaround: Directly calling the method on `<*mut dyn TestTrait>` 
-            // is invalid, so this alternative approach is used.
-            #[kani::proof_for_contract(<*mut TestStruct>::byte_offset)]
+            // Workaround: Directly verifying the method `<*mut dyn TestTrait>::byte_offset`
+            // causes a compilation error: "Failed to resolve checking function <*mut dyn TestTrait>::byte_offset
+            // because Expected a type, but found trait object paths `dyn TestTrait`".
+            // As a result, the proof is annotated for the underlying struct type instead.
+            #[kani::proof_for_contract(<*mut dyn TestTrait>::byte_offset)]
             pub fn $proof_name() {
                 let mut test_struct = TestStruct { value: 42 };
                 let trait_object: &mut dyn TestTrait = &mut test_struct;
@@ -2616,8 +2617,10 @@ pub mod verify {
         };
 
         ($fn_name: ident, $proof_name:ident) => {
-            // Workaround: Directly calling the method on `<*mut dyn TestTrait>` 
-            // is invalid, so this alternative approach is used.
+            // Workaround: Directly verifying the method `<*mut dyn TestTrait>::$fn_name`
+            // causes a compilation error: "Failed to resolve checking function <*mut dyn TestTrait>::byte_offset
+            // because Expected a type, but found trait object paths `dyn TestTrait`".
+            // As a result, the proof is annotated for the underlying struct type instead.
             #[kani::proof_for_contract(<*mut TestStruct>::$fn_name)]
             pub fn $proof_name() {
                 let mut test_struct = TestStruct { value: 42 };
@@ -2632,9 +2635,9 @@ pub mod verify {
                 }
             }
         };
-    } 
-    
+    }
+
     gen_mut_byte_arith_harness_for_dyn!(byte_add, check_mut_byte_add_dyn);
-    gen_mut_byte_arith_harness_for_dyn!(byte_sub, check_mut_byte_sub_dyn); 
+    gen_mut_byte_arith_harness_for_dyn!(byte_sub, check_mut_byte_sub_dyn);
     gen_mut_byte_arith_harness_for_dyn!(byte_offset, check_mut_byte_offset_dyn);
 }
