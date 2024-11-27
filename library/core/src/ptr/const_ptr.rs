@@ -1962,381 +1962,61 @@ impl<T: ?Sized> PartialOrd for *const T {
 
 #[cfg(kani)]
 #[unstable(feature = "kani", issue = "none")]
-mod verify {
+pub mod verify {
     use crate::kani;
     use core::mem;
     use kani::PointerGenerator;
 
-    // Proof for unit size will panic as offset_from needs the pointee size to be greater then 0
-    #[kani::proof_for_contract(<*const ()>::offset_from)]
-    #[kani::should_panic]
-    pub fn check_const_offset_from_unit() {
-        let val: () = ();
-        let src_ptr: *const () = &val;
-        let dest_ptr: *const () = &val;
-        unsafe {
-            dest_ptr.offset_from(src_ptr);
-        }
+    trait TestTrait {}
+
+    struct TestStruct {
+        value: i64,
     }
 
-    // bounding space for PointerGenerator to accommodate 40 elements.
-    const ARRAY_LEN: usize = 40;
+    impl TestTrait for TestStruct {}
 
-    macro_rules! generate_offset_from_harness {
-        ($type: ty, $proof_name1: ident, $proof_name2: ident) => {
-            // Proof for a single element
-            #[kani::proof_for_contract(<*const $type>::offset_from)]
-            pub fn $proof_name1() {
-                const gen_size: usize = mem::size_of::<$type>();
-                let mut generator1 = PointerGenerator::<gen_size>::new();
-                let mut generator2 = PointerGenerator::<gen_size>::new();
-                let ptr1: *const $type = generator1.any_in_bounds().ptr;
-                let ptr2: *const $type = if kani::any() {
-                    generator1.any_alloc_status().ptr
-                } else {
-                    generator2.any_alloc_status().ptr
-                };
-
-                unsafe {
-                    ptr1.offset_from(ptr2);
-                }
-            }
-
-            // Proof for large arrays
-            #[kani::proof_for_contract(<*const $type>::offset_from)]
-            pub fn $proof_name2() {
-                const gen_size: usize = mem::size_of::<$type>();
-                let mut generator1 = PointerGenerator::<{ gen_size * ARRAY_LEN }>::new();
-                let mut generator2 = PointerGenerator::<{ gen_size * ARRAY_LEN }>::new();
-                let ptr1: *const $type = generator1.any_in_bounds().ptr;
-                let ptr2: *const $type = if kani::any() {
-                    generator1.any_alloc_status().ptr
-                } else {
-                    generator2.any_alloc_status().ptr
-                };
-
-                unsafe {
-                    ptr1.offset_from(ptr2);
-                }
-            }
-        };
-    }
-
-    generate_offset_from_harness!(
-        u8,
-        check_const_offset_from_u8,
-        check_const_offset_from_u8_arr
-    );
-    generate_offset_from_harness!(
-        u16,
-        check_const_offset_from_u16,
-        check_const_offset_from_u16_arr
-    );
-    generate_offset_from_harness!(
-        u32,
-        check_const_offset_from_u32,
-        check_const_offset_from_u32_arr
-    );
-    generate_offset_from_harness!(
-        u64,
-        check_const_offset_from_u64,
-        check_const_offset_from_u64_arr
-    );
-    generate_offset_from_harness!(
-        u128,
-        check_const_offset_from_u128,
-        check_const_offset_from_u128_arr
-    );
-    generate_offset_from_harness!(
-        usize,
-        check_const_offset_from_usize,
-        check_const_offset_from_usize_arr
-    );
-
-    generate_offset_from_harness!(
-        i8,
-        check_const_offset_from_i8,
-        check_const_offset_from_i8_arr
-    );
-    generate_offset_from_harness!(
-        i16,
-        check_const_offset_from_i16,
-        check_const_offset_from_i16_arr
-    );
-    generate_offset_from_harness!(
-        i32,
-        check_const_offset_from_i32,
-        check_const_offset_from_i32_arr
-    );
-    generate_offset_from_harness!(
-        i64,
-        check_const_offset_from_i64,
-        check_const_offset_from_i64_arr
-    );
-    generate_offset_from_harness!(
-        i128,
-        check_const_offset_from_i128,
-        check_const_offset_from_i128_arr
-    );
-    generate_offset_from_harness!(
-        isize,
-        check_const_offset_from_isize,
-        check_const_offset_from_isize_arr
-    );
-
-    generate_offset_from_harness!(
-        (i8, i8),
-        check_const_offset_from_tuple_1,
-        check_const_offset_from_tuple_1_arr
-    );
-    generate_offset_from_harness!(
-        (f64, bool),
-        check_const_offset_from_tuple_2,
-        check_const_offset_from_tuple_2_arr
-    );
-    generate_offset_from_harness!(
-        (u32, i16, f32),
-        check_const_offset_from_tuple_3,
-        check_const_offset_from_tuple_3_arr
-    );
-    generate_offset_from_harness!(
-        ((), bool, u8, u16, i32, f64, i128, usize),
-        check_const_offset_from_tuple_4,
-        check_const_offset_from_tuple_4_arr
-    );
-
-    // generate proof for contracts of byte_add, byte_sub and byte_offset to verify
-    // unit pointee type
-    // - `$fn_name`: function for which the contract must be verified
-    // - `$proof_name`: name of the harness generated
-    macro_rules! gen_const_byte_arith_harness_for_unit {
+    macro_rules! gen_const_byte_arith_harness_for_dyn {
         (byte_offset, $proof_name:ident) => {
-            #[kani::proof_for_contract(<*const ()>::byte_offset)]
+            // Workaround: Directly verifying the method `<*const dyn TestTrait>::byte_offset`
+            // causes a compilation error: "Failed to resolve checking function <*const dyn TestTrait>::byte_offset
+            // because Expected a type, but found trait object paths `dyn TestTrait`".
+            // As a result, the proof is annotated for the underlying struct type instead.
+            #[kani::proof_for_contract(<*const TestStruct>::byte_offset)]
             pub fn $proof_name() {
-                let val = ();
-                let ptr: *const () = &val;
-                let count: isize = kani::any();
-                unsafe {
-                    ptr.byte_offset(count);
-                }
-            }
-        };
-
-        ($fn_name:ident, $proof_name:ident) => {
-            #[kani::proof_for_contract(<*const ()>::$fn_name)]
-            pub fn $proof_name() {
-                let val = ();
-                let ptr: *const () = &val;
-                //byte_add and byte_sub need count to be usize unlike byte_offset
-                let count: usize = kani::any();
-                unsafe {
-                    ptr.$fn_name(count);
-                }
-            }
-        };
-    }
-
-    gen_const_byte_arith_harness_for_unit!(byte_add, check_const_byte_add_unit);
-    gen_const_byte_arith_harness_for_unit!(byte_sub, check_const_byte_sub_unit);
-    gen_const_byte_arith_harness_for_unit!(byte_offset, check_const_byte_offset_unit);
-
-    // generate proof for contracts for byte_add, byte_sub and byte_offset
-    // - `$type`: pointee type
-    // - `$fn_name`: function for which the contract must be verified
-    // - `$proof_name`: name of the harness generated
-    macro_rules! gen_const_byte_arith_harness {
-        ($type:ty, byte_offset, $proof_name:ident) => {
-            #[kani::proof_for_contract(<*const $type>::byte_offset)]
-            pub fn $proof_name() {
-                // generator with space for single element
-                let mut generator1 = PointerGenerator::<{ mem::size_of::<$type>() }>::new();
-                // generator with space for multiple elements
-                let mut generator2 =
-                    PointerGenerator::<{ mem::size_of::<$type>() * ARRAY_LEN }>::new();
-
-                let ptr: *const $type = if kani::any() {
-                    generator1.any_in_bounds().ptr
-                } else {
-                    generator2.any_in_bounds().ptr
-                };
+                let test_struct = TestStruct { value: 42 };
+                let trait_object: &dyn TestTrait = &test_struct;
+                let test_ptr: *const dyn TestTrait = trait_object;
 
                 let count: isize = kani::any();
 
                 unsafe {
-                    ptr.byte_offset(count);
+                    test_ptr.byte_offset(count);
                 }
             }
         };
 
-        ($type:ty, $fn_name:ident, $proof_name:ident) => {
-            #[kani::proof_for_contract(<*const $type>::$fn_name)]
+        ($fn_name: ident, $proof_name:ident) => {
+            // Workaround: Directly verifying the method `<*const dyn TestTrait>::$fn_name`
+            // causes a compilation error: "Failed to resolve checking function <*const dyn TestTrait>::byte_offset
+            // because Expected a type, but found trait object paths `dyn TestTrait`".
+            // As a result, the proof is annotated for the underlying struct type instead.
+            #[kani::proof_for_contract(<*const TestStruct>::$fn_name)]
             pub fn $proof_name() {
-                // generator with space for single element
-                let mut generator1 = PointerGenerator::<{ mem::size_of::<$type>() }>::new();
-                // generator with space for multiple elements
-                let mut generator2 =
-                    PointerGenerator::<{ mem::size_of::<$type>() * ARRAY_LEN }>::new();
-
-                let ptr: *const $type = if kani::any() {
-                    generator1.any_in_bounds().ptr
-                } else {
-                    generator2.any_in_bounds().ptr
-                };
+                let test_struct = TestStruct { value: 42 };
+                let trait_object: &dyn TestTrait = &test_struct;
+                let test_ptr: *const dyn TestTrait = trait_object;
 
                 //byte_add and byte_sub need count to be usize unlike byte_offset
                 let count: usize = kani::any();
 
                 unsafe {
-                    ptr.$fn_name(count);
+                    test_ptr.$fn_name(count);
                 }
             }
         };
     }
 
-    gen_const_byte_arith_harness!(i8, byte_add, check_const_byte_add_i8);
-    gen_const_byte_arith_harness!(i16, byte_add, check_const_byte_add_i16);
-    gen_const_byte_arith_harness!(i32, byte_add, check_const_byte_add_i32);
-    gen_const_byte_arith_harness!(i64, byte_add, check_const_byte_add_i64);
-    gen_const_byte_arith_harness!(i128, byte_add, check_const_byte_add_i128);
-    gen_const_byte_arith_harness!(isize, byte_add, check_const_byte_add_isize);
-    gen_const_byte_arith_harness!(u8, byte_add, check_const_byte_add_u8);
-    gen_const_byte_arith_harness!(u16, byte_add, check_const_byte_add_u16);
-    gen_const_byte_arith_harness!(u32, byte_add, check_const_byte_add_u32);
-    gen_const_byte_arith_harness!(u64, byte_add, check_const_byte_add_u64);
-    gen_const_byte_arith_harness!(u128, byte_add, check_const_byte_add_u128);
-    gen_const_byte_arith_harness!(usize, byte_add, check_const_byte_add_usize);
-    gen_const_byte_arith_harness!((i8, i8), byte_add, check_const_byte_add_tuple_1);
-    gen_const_byte_arith_harness!((f64, bool), byte_add, check_const_byte_add_tuple_2);
-    gen_const_byte_arith_harness!((i32, f64, bool), byte_add, check_const_byte_add_tuple_3);
-    gen_const_byte_arith_harness!(
-        (i8, u16, i32, u64, isize),
-        byte_add,
-        check_const_byte_add_tuple_4
-    );
-
-    gen_const_byte_arith_harness!(i8, byte_sub, check_const_byte_sub_i8);
-    gen_const_byte_arith_harness!(i16, byte_sub, check_const_byte_sub_i16);
-    gen_const_byte_arith_harness!(i32, byte_sub, check_const_byte_sub_i32);
-    gen_const_byte_arith_harness!(i64, byte_sub, check_const_byte_sub_i64);
-    gen_const_byte_arith_harness!(i128, byte_sub, check_const_byte_sub_i128);
-    gen_const_byte_arith_harness!(isize, byte_sub, check_const_byte_sub_isize);
-    gen_const_byte_arith_harness!(u8, byte_sub, check_const_byte_sub_u8);
-    gen_const_byte_arith_harness!(u16, byte_sub, check_const_byte_sub_u16);
-    gen_const_byte_arith_harness!(u32, byte_sub, check_const_byte_sub_u32);
-    gen_const_byte_arith_harness!(u64, byte_sub, check_const_byte_sub_u64);
-    gen_const_byte_arith_harness!(u128, byte_sub, check_const_byte_sub_u128);
-    gen_const_byte_arith_harness!(usize, byte_sub, check_const_byte_sub_usize);
-    gen_const_byte_arith_harness!((i8, i8), byte_sub, check_const_byte_sub_tuple_1);
-    gen_const_byte_arith_harness!((f64, bool), byte_sub, check_const_byte_sub_tuple_2);
-    gen_const_byte_arith_harness!((i32, f64, bool), byte_sub, check_const_byte_sub_tuple_3);
-    gen_const_byte_arith_harness!(
-        (i8, u16, i32, u64, isize),
-        byte_sub,
-        check_const_byte_sub_tuple_4
-    );
-
-    gen_const_byte_arith_harness!(i8, byte_offset, check_const_byte_offset_i8);
-    gen_const_byte_arith_harness!(i16, byte_offset, check_const_byte_offset_i16);
-    gen_const_byte_arith_harness!(i32, byte_offset, check_const_byte_offset_i32);
-    gen_const_byte_arith_harness!(i64, byte_offset, check_const_byte_offset_i64);
-    gen_const_byte_arith_harness!(i128, byte_offset, check_const_byte_offset_i128);
-    gen_const_byte_arith_harness!(isize, byte_offset, check_const_byte_offset_isize);
-    gen_const_byte_arith_harness!(u8, byte_offset, check_const_byte_offset_u8);
-    gen_const_byte_arith_harness!(u16, byte_offset, check_const_byte_offset_u16);
-    gen_const_byte_arith_harness!(u32, byte_offset, check_const_byte_offset_u32);
-    gen_const_byte_arith_harness!(u64, byte_offset, check_const_byte_offset_u64);
-    gen_const_byte_arith_harness!(u128, byte_offset, check_const_byte_offset_u128);
-    gen_const_byte_arith_harness!(usize, byte_offset, check_const_byte_offset_usize);
-    gen_const_byte_arith_harness!((i8, i8), byte_offset, check_const_byte_offset_tuple_1);
-    gen_const_byte_arith_harness!((f64, bool), byte_offset, check_const_byte_offset_tuple_2);
-    gen_const_byte_arith_harness!(
-        (i32, f64, bool),
-        byte_offset,
-        check_const_byte_offset_tuple_3
-    );
-    gen_const_byte_arith_harness!(
-        (i8, u16, i32, u64, isize),
-        byte_offset,
-        check_const_byte_offset_tuple_4
-    );
-
-    macro_rules! gen_const_byte_arith_harness_for_slice {
-        ($type:ty, byte_offset, $proof_name:ident) => {
-            #[kani::proof_for_contract(<*const [$type]>::byte_offset)]
-            pub fn $proof_name() {
-                let arr: [$type; ARRAY_LEN] = kani::Arbitrary::any_array();
-                let slice: &[$type] = kani::slice::any_slice_of_array(&arr);
-                let ptr: *const [$type] = slice;
-
-                let count: isize = kani::any();
-
-                unsafe {
-                    ptr.byte_offset(count);
-                }
-            }
-        };
-
-        ($type:ty, $fn_name: ident, $proof_name:ident) => {
-            #[kani::proof_for_contract(<*const [$type]>::$fn_name)]
-            pub fn $proof_name() {
-                let arr: [$type; ARRAY_LEN] = kani::Arbitrary::any_array();
-                let slice: &[$type] = kani::slice::any_slice_of_array(&arr);
-                let ptr: *const [$type] = slice;
-
-                //byte_add and byte_sub need count to be usize unlike byte_offset
-                let count: usize = kani::any();
-
-                unsafe {
-                    ptr.$fn_name(count);
-                }
-            }
-        };
-    }
-
-    gen_const_byte_arith_harness_for_slice!(i8, byte_add, check_const_byte_add_i8_slice);
-    gen_const_byte_arith_harness_for_slice!(i16, byte_add, check_const_byte_add_i16_slice);
-    gen_const_byte_arith_harness_for_slice!(i32, byte_add, check_const_byte_add_i32_slice);
-    gen_const_byte_arith_harness_for_slice!(i64, byte_add, check_const_byte_add_i64_slice);
-    gen_const_byte_arith_harness_for_slice!(i128, byte_add, check_const_byte_add_i128_slice);
-    gen_const_byte_arith_harness_for_slice!(isize, byte_add, check_const_byte_add_isize_slice);
-    gen_const_byte_arith_harness_for_slice!(u8, byte_add, check_const_byte_add_u8_slice);
-    gen_const_byte_arith_harness_for_slice!(u16, byte_add, check_const_byte_add_u16_slice);
-    gen_const_byte_arith_harness_for_slice!(u32, byte_add, check_const_byte_add_u32_slice);
-    gen_const_byte_arith_harness_for_slice!(u64, byte_add, check_const_byte_add_u64_slice);
-    gen_const_byte_arith_harness_for_slice!(u128, byte_add, check_const_byte_add_u128_slice);
-    gen_const_byte_arith_harness_for_slice!(usize, byte_add, check_const_byte_add_usize_slice);
-
-    gen_const_byte_arith_harness_for_slice!(i8, byte_sub, check_const_byte_sub_i8_slice);
-    gen_const_byte_arith_harness_for_slice!(i16, byte_sub, check_const_byte_sub_i16_slice);
-    gen_const_byte_arith_harness_for_slice!(i32, byte_sub, check_const_byte_sub_i32_slice);
-    gen_const_byte_arith_harness_for_slice!(i64, byte_sub, check_const_byte_sub_i64_slice);
-    gen_const_byte_arith_harness_for_slice!(i128, byte_sub, check_const_byte_sub_i128_slice);
-    gen_const_byte_arith_harness_for_slice!(isize, byte_sub, check_const_byte_sub_isize_slice);
-    gen_const_byte_arith_harness_for_slice!(u8, byte_sub, check_const_byte_sub_u8_slice);
-    gen_const_byte_arith_harness_for_slice!(u16, byte_sub, check_const_byte_sub_u16_slice);
-    gen_const_byte_arith_harness_for_slice!(u32, byte_sub, check_const_byte_sub_u32_slice);
-    gen_const_byte_arith_harness_for_slice!(u64, byte_sub, check_const_byte_sub_u64_slice);
-    gen_const_byte_arith_harness_for_slice!(u128, byte_sub, check_const_byte_sub_u128_slice);
-    gen_const_byte_arith_harness_for_slice!(usize, byte_sub, check_const_byte_sub_usize_slice);
-
-    gen_const_byte_arith_harness_for_slice!(i8, byte_offset, check_const_byte_offset_i8_slice);
-    gen_const_byte_arith_harness_for_slice!(i16, byte_offset, check_const_byte_offset_i16_slice);
-    gen_const_byte_arith_harness_for_slice!(i32, byte_offset, check_const_byte_offset_i32_slice);
-    gen_const_byte_arith_harness_for_slice!(i64, byte_offset, check_const_byte_offset_i64_slice);
-    gen_const_byte_arith_harness_for_slice!(i128, byte_offset, check_const_byte_offset_i128_slice);
-    gen_const_byte_arith_harness_for_slice!(
-        isize,
-        byte_offset,
-        check_const_byte_offset_isize_slice
-    );
-    gen_const_byte_arith_harness_for_slice!(u8, byte_offset, check_const_byte_offset_u8_slice);
-    gen_const_byte_arith_harness_for_slice!(u16, byte_offset, check_const_byte_offset_u16_slice);
-    gen_const_byte_arith_harness_for_slice!(u32, byte_offset, check_const_byte_offset_u32_slice);
-    gen_const_byte_arith_harness_for_slice!(u64, byte_offset, check_const_byte_offset_u64_slice);
-    gen_const_byte_arith_harness_for_slice!(u128, byte_offset, check_const_byte_offset_u128_slice);
-    gen_const_byte_arith_harness_for_slice!(
-        usize,
-        byte_offset,
-        check_const_byte_offset_usize_slice
-    );
+    gen_const_byte_arith_harness_for_dyn!(byte_add, check_const_byte_add_dyn);
+    gen_const_byte_arith_harness_for_dyn!(byte_sub, check_const_byte_sub_dyn);
+    gen_const_byte_arith_harness_for_dyn!(byte_offset, check_const_byte_offset_dyn);
 }
