@@ -2248,5 +2248,45 @@ mod verify {
     generate_const_byte_offset_from_slice_harness!(i64, check_const_byte_offset_from_i64_slice);
     generate_const_byte_offset_from_slice_harness!(i128, check_const_byte_offset_from_i128_slice);
     generate_const_byte_offset_from_slice_harness!(isize, check_const_byte_offset_from_isize_slice);
-    
+
+    trait TestTrait {}
+
+    struct TestStruct {
+        value: i64,
+    }
+
+    // Implements `kani::Arbitrary` to enable the use of the pointer generator.
+    impl kani::Arbitrary for TestStruct {
+        fn any() -> Self {
+            TestStruct { value: kani::any() }
+        }
+    }
+
+    impl TestTrait for TestStruct {}
+
+    // Workaround: Directly verifying `<*const dyn TestTrait>::byte_offset_from`
+    // causes a compilation error: "Failed to resolve checking function <*const dyn TestTrait>::byte_offset_from
+    // because Expected a type, but found trait object paths `dyn TestTrait`".
+    // As a result, the proof is annotated for the underlying struct type instead.
+    #[kani::proof_for_contract(<*const TestStruct>::byte_offset_from)]
+    pub fn check_const_byte_offset_from_dyn() {
+        const gen_size: usize = mem::size_of::<TestStruct>();
+        // Since the pointer generator cannot directly create pointers to `dyn Trait`, 
+        // we first generate a pointer to the underlying struct and then cast it to a `dyn Trait` pointer.
+        let mut generator1 = PointerGenerator::<gen_size>::new();
+        let mut generator2 = PointerGenerator::<gen_size>::new();
+        let ptr1: *const TestStruct = generator1.any_in_bounds().ptr;
+        let ptr2: *const TestStruct = if kani::any() {
+            generator1.any_alloc_status().ptr
+        } else {
+            generator2.any_alloc_status().ptr
+        };
+
+        let ptr1 = ptr1 as *const dyn TestTrait;
+        let ptr2 = ptr2 as *const dyn TestTrait;
+
+        unsafe {
+            ptr1.byte_offset_from(ptr2);
+        }
+    } 
 }
