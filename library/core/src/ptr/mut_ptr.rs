@@ -2415,7 +2415,8 @@ mod verify {
     generate_mut_arithmetic_harness!(i64, check_mut_add_i64, add);
     generate_mut_arithmetic_harness!(i128, check_mut_add_i128, add);
     generate_mut_arithmetic_harness!(isize, check_mut_add_isize, add);
-    // Due to a bug of kani this test case is malfunctioning for now
+    // Due to a bug of kani this test case is malfunctioning for now.
+    // Tracking issue: https://github.com/model-checking/kani/issues/3743
     // generate_mut_arithmetic_harness!(u8, check_mut_add_u8, add);
     generate_mut_arithmetic_harness!(u16, check_mut_add_u16, add);
     generate_mut_arithmetic_harness!(u32, check_mut_add_u32, add);
