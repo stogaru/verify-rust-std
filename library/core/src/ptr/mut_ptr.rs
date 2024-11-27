@@ -404,6 +404,8 @@ impl<T: ?Sized> *mut T {
     #[rustc_const_stable(feature = "const_ptr_offset", since = "1.61.0")]
     #[inline(always)]
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
+    // Note: It is the caller's responsibility to ensure that `self` is non-null and properly aligned.
+    // These conditions are not verified as part of the preconditions.
     #[requires(
         // Precondition 1: the computed offset `count * size_of::<T>()` does not overflow `isize`
         count.checked_mul(core::mem::size_of::<T>() as isize).is_some() &&
@@ -1016,6 +1018,8 @@ impl<T: ?Sized> *mut T {
     #[rustc_const_stable(feature = "const_ptr_offset", since = "1.61.0")]
     #[inline(always)]
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
+    // Note: It is the caller's responsibility to ensure that `self` is non-null and properly aligned.
+    // These conditions are not verified as part of the preconditions.
     #[requires(
         // Precondition 1: the computed offset `count * size_of::<T>()` does not overflow `isize`
         count.checked_mul(core::mem::size_of::<T>()).is_some() &&
@@ -1140,6 +1144,8 @@ impl<T: ?Sized> *mut T {
     #[cfg_attr(bootstrap, rustc_allow_const_fn_unstable(unchecked_neg))]
     #[inline(always)]
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
+    // Note: It is the caller's responsibility to ensure that `self` is non-null and properly aligned.
+    // These conditions are not verified as part of the preconditions.
     #[requires(
         // Precondition 1: the computed offset `count * size_of::<T>()` does not overflow `isize`
         count.checked_mul(core::mem::size_of::<T>()).is_some() &&
