@@ -118,7 +118,10 @@ impl<T: ?Sized> *const T {
     /// println!("{:?}", unsafe { &*bad });
     /// ```
     #[unstable(feature = "set_ptr_value", issue = "75091")]
-    #[cfg_attr(bootstrap, rustc_const_stable(feature = "ptr_metadata_const", since = "1.83.0"))]
+    #[cfg_attr(
+        bootstrap,
+        rustc_const_stable(feature = "ptr_metadata_const", since = "1.83.0")
+    )]
     #[must_use = "returns a new pointer rather than modifying its argument"]
     #[inline]
     pub const fn with_metadata_of<U>(self, meta: *const U) -> *const U
@@ -421,7 +424,7 @@ impl<T: ?Sized> *const T {
     )]
     // Postcondition: If `T` is a unit type (`size_of::<T>() == 0`), no allocation check is needed.
     // Otherwise, for non-unit types, ensure that `self` and `result` point to the same allocated object,
-    // verifying that the result remains within the same allocation as `self`. 
+    // verifying that the result remains within the same allocation as `self`.
     #[ensures(|result| (core::mem::size_of::<T>() == 0) || kani::mem::same_allocation(self, *result as *const T))]
     pub const unsafe fn offset(self, count: isize) -> *const T
     where
@@ -949,7 +952,7 @@ impl<T: ?Sized> *const T {
     )]
     // Postcondition: If `T` is a unit type (`size_of::<T>() == 0`), no allocation check is needed.
     // Otherwise, for non-unit types, ensure that `self` and `result` point to the same allocated object,
-    // verifying that the result remains within the same allocation as `self`.  
+    // verifying that the result remains within the same allocation as `self`.
     #[ensures(|result| (core::mem::size_of::<T>() == 0) || kani::mem::same_allocation(self, *result as *const T))]
     pub const unsafe fn add(self, count: usize) -> Self
     where
@@ -1073,7 +1076,7 @@ impl<T: ?Sized> *const T {
     )]
     // Postcondition: If `T` is a unit type (`size_of::<T>() == 0`), no allocation check is needed.
     // Otherwise, for non-unit types, ensure that `self` and `result` point to the same allocated object,
-    // verifying that the result remains within the same allocation as `self`.  
+    // verifying that the result remains within the same allocation as `self`.
     #[ensures(|result| (core::mem::size_of::<T>() == 0) || kani::mem::same_allocation(self, *result as *const T))]
     pub const unsafe fn sub(self, count: usize) -> Self
     where
@@ -1972,7 +1975,7 @@ mod verify {
                 let offset: usize = kani::any();
                 let count: isize = kani::any();
                 kani::assume(offset <= ARRAY_SIZE * mem::size_of::<$ty>());
-                let ptr_with_offset: *const $ty = test_ptr.wrapping_byte_add(offset);                
+                let ptr_with_offset: *const $ty = test_ptr.wrapping_byte_add(offset);
                 unsafe {
                     ptr_with_offset.offset(count);
                 }
@@ -1986,7 +1989,7 @@ mod verify {
                 let offset: usize = kani::any();
                 let count: usize = kani::any();
                 kani::assume(offset <= ARRAY_SIZE * mem::size_of::<$ty>());
-                let ptr_with_offset: *const $ty = test_ptr.wrapping_byte_add(offset);                
+                let ptr_with_offset: *const $ty = test_ptr.wrapping_byte_add(offset);
                 unsafe {
                     ptr_with_offset.add(count);
                 }
@@ -2000,7 +2003,7 @@ mod verify {
                 let offset: usize = kani::any();
                 let count: usize = kani::any();
                 kani::assume(offset <= ARRAY_SIZE * mem::size_of::<$ty>());
-                let ptr_with_offset: *const $ty = test_ptr.wrapping_byte_add(offset);                
+                let ptr_with_offset: *const $ty = test_ptr.wrapping_byte_add(offset);
                 unsafe {
                     ptr_with_offset.sub(count);
                 }
@@ -2028,7 +2031,7 @@ mod verify {
         check_const_offset_slice_tuple_1,
         check_const_add_slice_tuple_1,
         check_const_sub_slice_tuple_1
-    );    
+    );
     generate_slice_harnesses!(
         (f64, bool),
         check_const_offset_slice_tuple_2,
@@ -2047,7 +2050,7 @@ mod verify {
         check_const_add_slice_tuple_4,
         check_const_sub_slice_tuple_4
     );
-    
+
     /// This macro generates proofs for contracts on `add`, `sub`, and `offset`
     /// operations for pointers to integer, composite, and unit types.
     /// - `$type`: Specifies the pointee type.
@@ -2106,7 +2109,7 @@ mod verify {
     generate_const_arithmetic_harness!(u32, check_const_add_u32, add);
     generate_const_arithmetic_harness!(u64, check_const_add_u64, add);
     generate_const_arithmetic_harness!(u128, check_const_add_u128, add);
-    generate_const_arithmetic_harness!(usize, check_const_add_usize, add);   
+    generate_const_arithmetic_harness!(usize, check_const_add_usize, add);
 
     // <*const T>:: add() unit type verification
     generate_const_arithmetic_harness!((), check_const_add_unit, add);
@@ -2138,7 +2141,7 @@ mod verify {
     generate_const_arithmetic_harness!((i8, i8), check_const_sub_tuple_1, sub);
     generate_const_arithmetic_harness!((f64, bool), check_const_sub_tuple_2, sub);
     generate_const_arithmetic_harness!((i32, f64, bool), check_const_sub_tuple_3, sub);
-    generate_const_arithmetic_harness!((i8, u16, i32, u64, isize), check_const_sub_tuple_4, sub); 
+    generate_const_arithmetic_harness!((i8, u16, i32, u64, isize), check_const_sub_tuple_4, sub);
 
     // fn <*const T>::offset() integer types verification
     generate_const_arithmetic_harness!(i8, check_const_offset_i8, offset);
@@ -2161,5 +2164,9 @@ mod verify {
     generate_const_arithmetic_harness!((i8, i8), check_const_offset_tuple_1, offset);
     generate_const_arithmetic_harness!((f64, bool), check_const_offset_tuple_2, offset);
     generate_const_arithmetic_harness!((i32, f64, bool), check_const_offset_tuple_3, offset);
-    generate_const_arithmetic_harness!((i8, u16, i32, u64, isize), check_const_offset_tuple_4, offset);
+    generate_const_arithmetic_harness!(
+        (i8, u16, i32, u64, isize),
+        check_const_offset_tuple_4,
+        offset
+    );
 }
