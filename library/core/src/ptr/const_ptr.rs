@@ -118,10 +118,7 @@ impl<T: ?Sized> *const T {
     /// println!("{:?}", unsafe { &*bad });
     /// ```
     #[unstable(feature = "set_ptr_value", issue = "75091")]
-    #[cfg_attr(
-        bootstrap,
-        rustc_const_stable(feature = "ptr_metadata_const", since = "1.83.0")
-    )]
+    #[cfg_attr(bootstrap, rustc_const_stable(feature = "ptr_metadata_const", since = "1.83.0"))]
     #[must_use = "returns a new pointer rather than modifying its argument"]
     #[inline]
     pub const fn with_metadata_of<U>(self, meta: *const U) -> *const U
