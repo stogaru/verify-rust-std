@@ -2673,7 +2673,7 @@ mod verify {
     generate_mut_arithmetic_harness!((f64, bool), check_mut_offset_tuple_2, offset);
     generate_mut_arithmetic_harness!((i32, f64, bool), check_mut_offset_tuple_3, offset);
     generate_mut_arithmetic_harness!((i8, u16, i32, u64, isize), check_mut_offset_tuple_4, offset);
-  
+
     trait TestTrait {}
 
     #[cfg_attr(kani, derive(kani::Arbitrary))]
@@ -2690,7 +2690,7 @@ mod verify {
     #[kani::proof_for_contract(<*mut TestStruct>::byte_offset_from)]
     pub fn check_mut_byte_offset_from_dyn() {
         const gen_size: usize = mem::size_of::<TestStruct>();
-        // Since the pointer generator cannot directly create pointers to `dyn Trait`, 
+        // Since the pointer generator cannot directly create pointers to `dyn Trait`,
         // we first generate a pointer to the underlying struct and then cast it to a `dyn Trait` pointer.
         let mut generator1 = PointerGenerator::<gen_size>::new();
         let mut generator2 = PointerGenerator::<gen_size>::new();
