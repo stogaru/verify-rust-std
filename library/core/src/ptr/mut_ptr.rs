@@ -9,7 +9,6 @@ use safety::{ensures, requires};
 use crate::kani;
 use core::mem;
 
-
 impl<T: ?Sized> *mut T {
     /// Returns `true` if the pointer is null.
     ///
@@ -2535,7 +2534,7 @@ pub mod verify {
     }
 
     impl TestTrait for TestStruct {}
-    
+
     /// This macro generates proofs for contracts on `byte_add`, `byte_sub`, and `byte_offset`
     /// operations for pointers to dyn Trait.
     /// - `$fn_name`: Specifies the arithmetic operation to verify.
@@ -2579,8 +2578,8 @@ pub mod verify {
             }
         };
     }
-    
-    // fn <*mut T>::add(), <*mut T>::sub() and <*mut T>::offset() dyn Trait verification 
+
+    // fn <*mut T>::add(), <*mut T>::sub() and <*mut T>::offset() dyn Trait verification
     gen_mut_byte_arith_harness_for_dyn!(byte_add, check_mut_byte_add_dyn);
     gen_mut_byte_arith_harness_for_dyn!(byte_sub, check_mut_byte_sub_dyn);
     gen_mut_byte_arith_harness_for_dyn!(byte_offset, check_mut_byte_offset_dyn);
