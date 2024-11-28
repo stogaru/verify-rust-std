@@ -2389,7 +2389,7 @@ pub mod verify {
         }
     }
 
-    // generate proofs for contracts for byte_offset_from to verify int and composite 
+    // generate proofs for contracts for byte_offset_from to verify int and composite
     // types
     // - `$type`: pointee type
     // - `$proof_name1`: name of the harness for single element
@@ -2543,7 +2543,7 @@ pub mod verify {
             }
         };
     }
-    
+
     generate_mut_byte_offset_from_slice_harness!(u8, check_mut_byte_offset_from_u8_slice);
     generate_mut_byte_offset_from_slice_harness!(u16, check_mut_byte_offset_from_u16_slice);
     generate_mut_byte_offset_from_slice_harness!(u32, check_mut_byte_offset_from_u32_slice);
