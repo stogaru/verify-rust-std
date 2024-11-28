@@ -1963,6 +1963,7 @@ impl<T: ?Sized> PartialOrd for *const T {
 mod verify {
     use crate::kani;
     use core::mem;
+    use kani::PointerGenerator;
     // Constant for array size used in all tests
     const ARRAY_SIZE: usize = 5;
 
@@ -2019,18 +2020,78 @@ mod verify {
     }
 
     // Generate slice harnesses for various types (offset, add, sub)
-    generate_slice_harnesses!(i8, check_const_offset_slice_i8, check_const_add_slice_i8, check_const_sub_slice_i8);
-    generate_slice_harnesses!(i16, check_const_offset_slice_i16, check_const_add_slice_i16, check_const_sub_slice_i16);
-    generate_slice_harnesses!(i32, check_const_offset_slice_i32, check_const_add_slice_i32, check_const_sub_slice_i32);
-    generate_slice_harnesses!(i64, check_const_offset_slice_i64, check_const_add_slice_i64, check_const_sub_slice_i64);
-    generate_slice_harnesses!(i128, check_const_offset_slice_i128, check_const_add_slice_i128, check_const_sub_slice_i128);
-    generate_slice_harnesses!(isize, check_const_offset_slice_isize, check_const_add_slice_isize, check_const_sub_slice_isize);
-    generate_slice_harnesses!(u8, check_const_offset_slice_u8, check_const_add_slice_u8, check_const_sub_slice_u8);
-    generate_slice_harnesses!(u16, check_const_offset_slice_u16, check_const_add_slice_u16, check_const_sub_slice_u16);
-    generate_slice_harnesses!(u32, check_const_offset_slice_u32, check_const_add_slice_u32, check_const_sub_slice_u32);
-    generate_slice_harnesses!(u64, check_const_offset_slice_u64, check_const_add_slice_u64, check_const_sub_slice_u64);
-    generate_slice_harnesses!(u128, check_const_offset_slice_u128, check_const_add_slice_u128, check_const_sub_slice_u128);
-    generate_slice_harnesses!(usize, check_const_offset_slice_usize, check_const_add_slice_usize, check_const_sub_slice_usize);
+    generate_slice_harnesses!(
+        i8,
+        check_const_offset_slice_i8,
+        check_const_add_slice_i8,
+        check_const_sub_slice_i8
+    );
+    generate_slice_harnesses!(
+        i16,
+        check_const_offset_slice_i16,
+        check_const_add_slice_i16,
+        check_const_sub_slice_i16
+    );
+    generate_slice_harnesses!(
+        i32,
+        check_const_offset_slice_i32,
+        check_const_add_slice_i32,
+        check_const_sub_slice_i32
+    );
+    generate_slice_harnesses!(
+        i64,
+        check_const_offset_slice_i64,
+        check_const_add_slice_i64,
+        check_const_sub_slice_i64
+    );
+    generate_slice_harnesses!(
+        i128,
+        check_const_offset_slice_i128,
+        check_const_add_slice_i128,
+        check_const_sub_slice_i128
+    );
+    generate_slice_harnesses!(
+        isize,
+        check_const_offset_slice_isize,
+        check_const_add_slice_isize,
+        check_const_sub_slice_isize
+    );
+    generate_slice_harnesses!(
+        u8,
+        check_const_offset_slice_u8,
+        check_const_add_slice_u8,
+        check_const_sub_slice_u8
+    );
+    generate_slice_harnesses!(
+        u16,
+        check_const_offset_slice_u16,
+        check_const_add_slice_u16,
+        check_const_sub_slice_u16
+    );
+    generate_slice_harnesses!(
+        u32,
+        check_const_offset_slice_u32,
+        check_const_add_slice_u32,
+        check_const_sub_slice_u32
+    );
+    generate_slice_harnesses!(
+        u64,
+        check_const_offset_slice_u64,
+        check_const_add_slice_u64,
+        check_const_sub_slice_u64
+    );
+    generate_slice_harnesses!(
+        u128,
+        check_const_offset_slice_u128,
+        check_const_add_slice_u128,
+        check_const_sub_slice_u128
+    );
+    generate_slice_harnesses!(
+        usize,
+        check_const_offset_slice_usize,
+        check_const_add_slice_usize,
+        check_const_sub_slice_usize
+    );
 
     // Generate slice harnesses for tuples (offset, add, sub)
     generate_slice_harnesses!(
@@ -2175,8 +2236,7 @@ mod verify {
         (i8, u16, i32, u64, isize),
         check_const_offset_tuple_4,
         offset
-      
-    use kani::PointerGenerator;
+    );
 
     // Proof for unit size will panic as offset_from needs the pointee size to be greater then 0
     #[kani::proof_for_contract(<*const ()>::offset_from)]
@@ -2294,7 +2354,6 @@ mod verify {
         check_const_offset_from_isize,
         check_const_offset_from_isize_arr
     );
-
     generate_offset_from_harness!(
         (i8, i8),
         check_const_offset_from_tuple_1,
