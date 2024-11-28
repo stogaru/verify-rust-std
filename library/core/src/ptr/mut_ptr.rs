@@ -404,6 +404,10 @@ impl<T: ?Sized> *mut T {
     #[rustc_const_stable(feature = "const_ptr_offset", since = "1.61.0")]
     #[inline(always)]
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
+
+    // Note: It is the caller's responsibility to ensure that `self` is non-null and properly aligned.
+    // These conditions are not verified as part of the preconditions.
+
     #[requires(
         // Precondition 1: the computed offset `count * size_of::<T>()` does not overflow `isize`
         count.checked_mul(core::mem::size_of::<T>() as isize).is_some() &&
@@ -416,7 +420,7 @@ impl<T: ?Sized> *mut T {
     )]
     // Postcondition: If `T` is a unit type (`size_of::<T>() == 0`), no allocation check is needed.
     // Otherwise, for non-unit types, ensure that `self` and `result` point to the same allocated object,
-    // verifying that the result remains within the same allocation as `self`. 
+    // verifying that the result remains within the same allocation as `self`.
     #[ensures(|result| (core::mem::size_of::<T>() == 0) || kani::mem::same_allocation(self as *const T, *result as *const T))]
     pub const unsafe fn offset(self, count: isize) -> *mut T
     where
@@ -1016,6 +1020,9 @@ impl<T: ?Sized> *mut T {
     #[rustc_const_stable(feature = "const_ptr_offset", since = "1.61.0")]
     #[inline(always)]
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
+
+    // Note: It is the caller's responsibility to ensure that `self` is non-null and properly aligned.
+    // These conditions are not verified as part of the preconditions.
     #[requires(
         // Precondition 1: the computed offset `count * size_of::<T>()` does not overflow `isize`
         count.checked_mul(core::mem::size_of::<T>()).is_some() &&
@@ -1140,6 +1147,10 @@ impl<T: ?Sized> *mut T {
     #[cfg_attr(bootstrap, rustc_allow_const_fn_unstable(unchecked_neg))]
     #[inline(always)]
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
+
+    // Note: It is the caller's responsibility to ensure that `self` is non-null and properly aligned.
+    // These conditions are not verified as part of the preconditions.
+
     #[requires(
         // Precondition 1: the computed offset `count * size_of::<T>()` does not overflow `isize`
         count.checked_mul(core::mem::size_of::<T>()).is_some() &&
@@ -1154,6 +1165,7 @@ impl<T: ?Sized> *mut T {
     // Postcondition: If `T` is a unit type (`size_of::<T>() == 0`), no allocation check is needed.
     // Otherwise, for non-unit types, ensure that `self` and `result` point to the same allocated object,
     // verifying that the result remains within the same allocation as `self`.  
+
     #[ensures(|result| (core::mem::size_of::<T>() == 0) || kani::mem::same_allocation(self as *const T, *result as *const T))]
     pub const unsafe fn sub(self, count: usize) -> Self
     where
@@ -2429,6 +2441,11 @@ mod verify {
 
 
     // generate proof for contracts for integer type, composite type and unit type pointers
+
+    /// This macro generates proofs for contracts on `add`, `sub`, and `offset`
+    /// operations for pointers to integer, composite, and unit types.
+    /// - `$type`: Specifies the pointee type.
+    /// - `$proof_name`: Specifies the name of the generated proof for contract.
     macro_rules! generate_mut_arithmetic_harness {
         ($type:ty, $proof_name:ident, add) => {
             #[kani::proof_for_contract(<*mut $type>::add)]
@@ -2444,6 +2461,13 @@ mod verify {
                 let ptr_with_offset: *mut $type = test_ptr.wrapping_add(offset);                   
                 unsafe {
                     ptr_with_offset.add(count);
+                // 200 bytes are large enough to cover all pointee types used for testing
+                const BUF_SIZE: usize = 200;
+                let mut generator = kani::PointerGenerator::<BUF_SIZE>::new();
+                let test_ptr: *mut $type = generator.any_in_bounds().ptr;
+                let count: usize = kani::any();
+                unsafe {
+                    test_ptr.add(count);
                 }
             }
         };
@@ -2461,6 +2485,13 @@ mod verify {
                 let ptr_with_offset: *mut $type = test_ptr.wrapping_add(offset);
                 unsafe {
                     ptr_with_offset.sub(count);
+                // 200 bytes are large enough to cover all pointee types used for testing
+                const BUF_SIZE: usize = 200;
+                let mut generator = kani::PointerGenerator::<BUF_SIZE>::new();
+                let test_ptr: *mut $type = generator.any_in_bounds().ptr;
+                let count: usize = kani::any();
+                unsafe {
+                    test_ptr.sub(count);
                 }
             }
         };
@@ -2478,6 +2509,13 @@ mod verify {
                 let ptr_with_offset: *mut $type = test_ptr.wrapping_add(offset);                
                 unsafe {
                     ptr_with_offset.offset(count);
+                // 200 bytes are large enough to cover all pointee types used for testing
+                const BUF_SIZE: usize = 200;
+                let mut generator = kani::PointerGenerator::<BUF_SIZE>::new();
+                let test_ptr: *mut $type = generator.any_in_bounds().ptr;
+                let count: isize = kani::any();
+                unsafe {
+                    test_ptr.offset(count);
                 }
             }
         };
@@ -2491,11 +2529,15 @@ mod verify {
     generate_mut_arithmetic_harness!(i128, check_mut_add_i128, add);
     generate_mut_arithmetic_harness!(isize, check_mut_add_isize, add);
     generate_mut_arithmetic_harness!(u8, check_mut_add_u8, add);
+    // Due to a bug of kani this test case is malfunctioning for now.
+    // Tracking issue: https://github.com/model-checking/kani/issues/3743
+    // generate_mut_arithmetic_harness!(u8, check_mut_add_u8, add);
     generate_mut_arithmetic_harness!(u16, check_mut_add_u16, add);
     generate_mut_arithmetic_harness!(u32, check_mut_add_u32, add);
     generate_mut_arithmetic_harness!(u64, check_mut_add_u64, add);
     generate_mut_arithmetic_harness!(u128, check_mut_add_u128, add);
     generate_mut_arithmetic_harness!(usize, check_mut_add_usize, add);   
+    generate_mut_arithmetic_harness!(usize, check_mut_add_usize, add);
 
     // <*mut T>:: add() unit type verification
     generate_mut_arithmetic_harness!((), check_mut_add_unit, add);
@@ -2528,6 +2570,7 @@ mod verify {
     generate_mut_arithmetic_harness!((f64, bool), check_mut_sub_tuple_2, sub);
     generate_mut_arithmetic_harness!((i32, f64, bool), check_mut_sub_tuple_3, sub);
     generate_mut_arithmetic_harness!((i8, u16, i32, u64, isize), check_mut_sub_tuple_4, sub); 
+    generate_mut_arithmetic_harness!((i8, u16, i32, u64, isize), check_mut_sub_tuple_4, sub);
 
     // fn <*mut T>::offset() integer types verification
     generate_mut_arithmetic_harness!(i8, check_mut_offset_i8, offset);
