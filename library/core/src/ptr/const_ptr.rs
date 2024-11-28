@@ -2293,6 +2293,7 @@ mod verify {
         };
     }
 
+    // fn <*const T>::offset_from() integer and integer slice types verification
     generate_offset_from_harness!(
         u8,
         check_const_offset_from_u8,
@@ -2323,7 +2324,6 @@ mod verify {
         check_const_offset_from_usize,
         check_const_offset_from_usize_arr
     );
-
     generate_offset_from_harness!(
         i8,
         check_const_offset_from_i8,
@@ -2354,6 +2354,8 @@ mod verify {
         check_const_offset_from_isize,
         check_const_offset_from_isize_arr
     );
+
+    // fn <*const T>::offset_from() typle and tuple slice types verification
     generate_offset_from_harness!(
         (i8, i8),
         check_const_offset_from_tuple_1,
