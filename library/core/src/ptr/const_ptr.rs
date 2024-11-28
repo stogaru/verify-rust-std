@@ -2070,7 +2070,7 @@ mod verify {
         check_const_offset_from_tuple_4_arr
     );
 
-    // Proof for contact of byte_offset_from to verify unit type 
+    // Proof for contact of byte_offset_from to verify unit type
     #[kani::proof_for_contract(<*const ()>::byte_offset_from)]
     pub fn check_const_byte_offset_from_unit() {
         let val: () = ();
@@ -2081,7 +2081,7 @@ mod verify {
         }
     }
 
-    // generate proofs for contracts for byte_offset_from to verify int and composite 
+    // generate proofs for contracts for byte_offset_from to verify int and composite
     // types
     // - `$type`: pointee type
     // - `$proof_name1`: name of the harness for single element
@@ -2222,7 +2222,8 @@ mod verify {
                 const gen_size: usize = mem::size_of::<$type>();
                 let mut generator1 = PointerGenerator::<{ gen_size * ARRAY_LEN }>::new();
                 let mut generator2 = PointerGenerator::<{ gen_size * ARRAY_LEN }>::new();
-                let ptr1: *const [$type] = generator1.any_in_bounds().ptr as *const [$type; SLICE_LEN];
+                let ptr1: *const [$type] =
+                    generator1.any_in_bounds().ptr as *const [$type; SLICE_LEN];
                 let ptr2: *const [$type] = if kani::any() {
                     generator1.any_alloc_status().ptr as *const [$type; SLICE_LEN]
                 } else {
@@ -2235,7 +2236,7 @@ mod verify {
             }
         };
     }
-    
+
     generate_const_byte_offset_from_slice_harness!(u8, check_const_byte_offset_from_u8_slice);
     generate_const_byte_offset_from_slice_harness!(u16, check_const_byte_offset_from_u16_slice);
     generate_const_byte_offset_from_slice_harness!(u32, check_const_byte_offset_from_u32_slice);
@@ -2248,7 +2249,7 @@ mod verify {
     generate_const_byte_offset_from_slice_harness!(i64, check_const_byte_offset_from_i64_slice);
     generate_const_byte_offset_from_slice_harness!(i128, check_const_byte_offset_from_i128_slice);
     generate_const_byte_offset_from_slice_harness!(isize, check_const_byte_offset_from_isize_slice);
-
+  
     trait TestTrait {}
 
     #[cfg_attr(kani, derive(kani::Arbitrary))]
