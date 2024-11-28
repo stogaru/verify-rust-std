@@ -444,11 +444,10 @@ mod verify {
     // verify function `const fn is_ascii(s: &[u8]) -> bool`.
     #[kani::proof]
     #[kani::unwind(9)]
-    #[kani::stub_verified(<*const usize>::add)]
     fn check_is_ascii() {
         const ARRAY_SIZE: usize = 8;
         let arr: [u8; ARRAY_SIZE] = kani::Arbitrary::any_array();
         let arr_slice: &[u8] = &arr;
         arr_slice.is_ascii();
-    }   
+    }
 }
