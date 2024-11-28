@@ -2528,7 +2528,6 @@ mod verify {
     generate_mut_arithmetic_harness!(i64, check_mut_add_i64, add);
     generate_mut_arithmetic_harness!(i128, check_mut_add_i128, add);
     generate_mut_arithmetic_harness!(isize, check_mut_add_isize, add);
-    generate_mut_arithmetic_harness!(u8, check_mut_add_u8, add);
     // Due to a bug of kani this test case is malfunctioning for now.
     // Tracking issue: https://github.com/model-checking/kani/issues/3743
     // generate_mut_arithmetic_harness!(u8, check_mut_add_u8, add);
@@ -2536,8 +2535,7 @@ mod verify {
     generate_mut_arithmetic_harness!(u32, check_mut_add_u32, add);
     generate_mut_arithmetic_harness!(u64, check_mut_add_u64, add);
     generate_mut_arithmetic_harness!(u128, check_mut_add_u128, add);
-    generate_mut_arithmetic_harness!(usize, check_mut_add_usize, add);   
-    generate_mut_arithmetic_harness!(usize, check_mut_add_usize, add);
+    generate_mut_arithmetic_harness!(usize, check_mut_add_usize, add);  
 
     // <*mut T>:: add() unit type verification
     generate_mut_arithmetic_harness!((), check_mut_add_unit, add);
@@ -2570,7 +2568,6 @@ mod verify {
     generate_mut_arithmetic_harness!((f64, bool), check_mut_sub_tuple_2, sub);
     generate_mut_arithmetic_harness!((i32, f64, bool), check_mut_sub_tuple_3, sub);
     generate_mut_arithmetic_harness!((i8, u16, i32, u64, isize), check_mut_sub_tuple_4, sub); 
-    generate_mut_arithmetic_harness!((i8, u16, i32, u64, isize), check_mut_sub_tuple_4, sub);
 
     // fn <*mut T>::offset() integer types verification
     generate_mut_arithmetic_harness!(i8, check_mut_offset_i8, offset);
