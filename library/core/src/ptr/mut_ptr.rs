@@ -2509,15 +2509,9 @@ pub mod verify {
 
     trait TestTrait {}
 
+    #[cfg_attr(kani, derive(kani::Arbitrary))]
     struct TestStruct {
         value: i64,
-    }
-
-    // Implements `kani::Arbitrary` to enable the use of the pointer generator.
-    impl kani::Arbitrary for TestStruct {
-        fn any() -> Self {
-            TestStruct { value: kani::any() }
-        }
     }
 
     impl TestTrait for TestStruct {}
