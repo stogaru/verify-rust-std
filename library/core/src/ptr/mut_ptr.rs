@@ -837,7 +837,7 @@ impl<T: ?Sized> *mut T {
     #[requires(
         // Ensuring that subtracting 'origin' from 'self' doesnt result in an overflow
         (self as isize).checked_sub(origin as isize).is_some() &&
-        // Ensuring that sthe distance between 'self' & 'origin' is aligned to T
+        // Ensuring that the distance between 'self' & 'origin' is aligned to `T`
         (self as isize - origin as isize) % (mem::size_of::<T>() as isize) == 0 &&
         // Ensuring that both pointers point to the same address or are in the same allocation
         (self as isize == origin as isize || kani::mem::same_allocation(self, origin))
