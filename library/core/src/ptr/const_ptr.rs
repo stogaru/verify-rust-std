@@ -1999,11 +1999,11 @@ mod verify {
     /// This macro generates verification harnesses for the `offset`, `add`, and `sub`
     /// pointer operations for a slice type.
     /// - `$ty`: The type of the array (e.g., i32, u32, tuples).
-    /// - `$offset_fn_name`: The function name for the `offset` operation.
-    /// - `$add_fn_name`: The function name for the `add` operation.
-    /// - `$sub_fn_name`: The function name for the `sub` operation.
+    /// - `$offset_fn_name`: The name for the `offset` proof for contract.
+    /// - `$add_fn_name`: The name for the `add` proof for contract.
+    /// - `$sub_fn_name`: The name for the `sub` proof for contract.
     macro_rules! generate_slice_harnesses {
-        ($ty:ty, $offset_fn_name:ident, $add_fn_name:ident, $sub_fn_name:ident) => {
+        ($ty:ty, $add_fn_name:ident, $sub_fn_name:ident, $offset_fn_name:ident) => {
             generate_single_slice_harness!($ty, $add_fn_name, add, usize);
             generate_single_slice_harness!($ty, $sub_fn_name, sub, usize);
             generate_single_slice_harness!($ty, $offset_fn_name, offset, isize);
@@ -2139,11 +2139,11 @@ mod verify {
     /// This macro generates verification harnesses for the `offset`, `add`, and `sub`
     /// pointer operations, supporting integer, composite, or unit types.
     /// - `$ty`: The type of the array (e.g., i32, u32, tuples).
-    /// - `$offset_fn_name`: The function name for the `offset` contract.
-    /// - `$add_fn_name`: The function name for the `add` proof for contract.
-    /// - `$sub_fn_name`: The function name for the `sub` proof for contract.
+    /// - `$offset_fn_name`: The name for the `offset` proof for contract.
+    /// - `$add_fn_name`: The name for the `add` proof for contract.
+    /// - `$sub_fn_name`: The name for the `sub` proof for contract.
     macro_rules! generate_arithmetic_harnesses {
-        ($ty:ty, $offset_fn_name:ident, $add_fn_name:ident, $sub_fn_name:ident) => {
+        ($ty:ty, $add_fn_name:ident, $sub_fn_name:ident, $offset_fn_name:ident) => {
             generate_single_arithmetic_harness!($ty, $add_fn_name, add, usize);
             generate_single_arithmetic_harness!($ty, $sub_fn_name, sub, usize);
             generate_single_arithmetic_harness!($ty, $offset_fn_name, offset, isize);
