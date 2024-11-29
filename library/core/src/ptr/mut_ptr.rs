@@ -2375,8 +2375,19 @@ mod verify {
     use core::mem;
     use kani::PointerGenerator;
 
-    // bound space for PointerGenerator
+    // bound space for PointerGenerator and arrays
     const ARRAY_LEN: usize = 40;
+
+    #[kani::proof]
+    pub fn check_mut_byte_offset_from_fixed_offset() {
+        let mut arr: [u32; ARRAY_LEN] = kani::Arbitrary::any_array();
+        let offset: usize = kani::any_where(|&x| x <= ARRAY_LEN);
+        let origin_ptr: *mut u32 = arr.as_mut_ptr();
+        let self_ptr: *mut u32 = unsafe { origin_ptr.byte_offset(offset as isize) };
+        let result: isize = unsafe { self_ptr.byte_offset_from(origin_ptr) };
+        assert_eq!(result, offset as isize);
+        assert_eq!(result, (self_ptr.addr() as isize - origin_ptr.addr() as isize));
+    }
 
     // Proof for unit size
     #[kani::proof_for_contract(<*mut ()>::byte_offset_from)]

@@ -1947,6 +1947,17 @@ mod verify {
     // Array size bound for PointerGenerator
     const ARRAY_LEN: usize = 40;
 
+    #[kani::proof]
+    pub fn check_const_byte_offset_from_fixed_offset() {
+        let arr: [u32; ARRAY_LEN] = kani::Arbitrary::any_array();
+        let offset: usize = kani::any_where(|&x| x <= ARRAY_LEN);
+        let origin_ptr: *const u32 = arr.as_ptr();
+        let self_ptr: *const u32 = unsafe { origin_ptr.byte_offset(offset as isize) };
+        let result: isize = unsafe { self_ptr.byte_offset_from(origin_ptr) };
+        assert_eq!(result, offset as isize);
+        assert_eq!(result, (self_ptr.addr() as isize - origin_ptr.addr() as isize));
+    }
+
     macro_rules! generate_offset_from_harness {
         ($type: ty, $proof_name1: ident, $proof_name2: ident) => {
             // Proof for a single element
