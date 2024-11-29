@@ -1964,58 +1964,45 @@ mod verify {
     use crate::kani;
     use core::mem;
     use kani::PointerGenerator;
+
     // Constant for array size used in all tests
     const ARRAY_SIZE: usize = 5;
 
+    /// This macro generates a single verification harness for the `offset`, `add`, or `sub`
+    /// pointer operations for a slice type.
+    /// - `$ty`: The type of the array's elements (e.g., `i32`, `u32`, tuples).
+    /// - `$fn_name`: The name of the function being checked (`add`, `sub`, or `offset`).
+    /// - `$proof_name`: The name assigned to the generated proof for the contract.
+    /// - `$count_ty:ty`: The type of the input variable passed to the method being invoked.
+    macro_rules! generate_single_slice_harness {
+        ($ty:ty, $proof_name:ident, $fn_name:ident, $count_ty:ty) => {
+            #[kani::proof_for_contract(<*const $ty>::$fn_name)]
+            fn $proof_name() {
+                let arr: [$ty; ARRAY_SIZE] = kani::Arbitrary::any_array();
+                let test_ptr: *const $ty = arr.as_ptr();
+                let offset: usize = kani::any();
+                kani::assume(offset <= ARRAY_SIZE * mem::size_of::<$ty>());
+                let ptr_with_offset: *const $ty = test_ptr.wrapping_byte_add(offset);
+    
+                let count: $count_ty = kani::any();
+                unsafe {
+                    ptr_with_offset.$fn_name(count);
+                }
+            }
+        }
+    }
+    
     /// This macro generates verification harnesses for the `offset`, `add`, and `sub`
-    /// pointer operations for a slice type and function name.
+    /// pointer operations for a slice type.
     /// - `$ty`: The type of the array (e.g., i32, u32, tuples).
-    /// - `$offset_fn`: The function name for the `offset` operation.
-    /// - `$add_fn`: The function name for the `add` operation.
-    /// - `$sub_fn`: The function name for the `sub` operation.
+    /// - `$offset_fn_name`: The function name for the `offset` operation.
+    /// - `$add_fn_name`: The function name for the `add` operation.
+    /// - `$sub_fn_name`: The function name for the `sub` operation.
     macro_rules! generate_slice_harnesses {
-        ($ty:ty, $offset_fn:ident, $add_fn:ident, $sub_fn:ident) => {
-            // Generates a harness for the `offset` operation
-            #[kani::proof_for_contract(<*const $ty>::offset)]
-            fn $offset_fn() {
-                let arr: [$ty; ARRAY_SIZE] = kani::Arbitrary::any_array();
-                let test_ptr: *const $ty = arr.as_ptr();
-                let offset: usize = kani::any();
-                let count: isize = kani::any();
-                kani::assume(offset <= ARRAY_SIZE * mem::size_of::<$ty>());
-                let ptr_with_offset: *const $ty = test_ptr.wrapping_byte_add(offset);
-                unsafe {
-                    ptr_with_offset.offset(count);
-                }
-            }
-
-            // Generates a harness for the `add` operation
-            #[kani::proof_for_contract(<*const $ty>::add)]
-            fn $add_fn() {
-                let arr: [$ty; ARRAY_SIZE] = kani::Arbitrary::any_array();
-                let test_ptr: *const $ty = arr.as_ptr();
-                let offset: usize = kani::any();
-                let count: usize = kani::any();
-                kani::assume(offset <= ARRAY_SIZE * mem::size_of::<$ty>());
-                let ptr_with_offset: *const $ty = test_ptr.wrapping_byte_add(offset);
-                unsafe {
-                    ptr_with_offset.add(count);
-                }
-            }
-
-            // Generates a harness for the `sub` operation
-            #[kani::proof_for_contract(<*const $ty>::sub)]
-            fn $sub_fn() {
-                let arr: [$ty; ARRAY_SIZE] = kani::Arbitrary::any_array();
-                let test_ptr: *const $ty = arr.as_ptr();
-                let offset: usize = kani::any();
-                let count: usize = kani::any();
-                kani::assume(offset <= ARRAY_SIZE * mem::size_of::<$ty>());
-                let ptr_with_offset: *const $ty = test_ptr.wrapping_byte_add(offset);
-                unsafe {
-                    ptr_with_offset.sub(count);
-                }
-            }
+        ($ty:ty, $offset_fn_name:ident, $add_fn_name:ident, $sub_fn_name:ident) => {
+            generate_single_slice_harness!($ty, $add_fn_name, add, usize);
+            generate_single_slice_harness!($ty, $sub_fn_name, sub, usize);
+            generate_single_slice_harness!($ty, $offset_fn_name, offset, isize);
         };
     }
 
