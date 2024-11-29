@@ -1974,9 +1974,9 @@ mod verify {
     /// - `$fn_name`: The name of the function being checked (`add`, `sub`, or `offset`).
     /// - `$proof_name`: The name assigned to the generated proof for the contract.
     /// - `$count_ty:ty`: The type of the input variable passed to the method being invoked.
-    /// 
-    /// Note: This macro is intended for internal use only and should be invoked exclusively 
-    /// by the `generate_slice_harnesses` macro. Its purpose is to reduce code duplication, 
+    ///
+    /// Note: This macro is intended for internal use only and should be invoked exclusively
+    /// by the `generate_slice_harnesses` macro. Its purpose is to reduce code duplication,
     /// and it is not meant to be used directly elsewhere in the codebase.
     macro_rules! generate_single_slice_harness {
         ($ty:ty, $proof_name:ident, $fn_name:ident, $count_ty:ty) => {
@@ -2116,9 +2116,9 @@ mod verify {
     /// - `$fn_name`: The name of the function being checked (`add`, `sub`, or `offset`).
     /// - `$proof_name`: The name assigned to the generated proof for the contract.
     /// - `$count_ty:ty`: The type of the input variable passed to the method being invoked.
-    /// 
-    /// Note: This macro is intended for internal use only and should be invoked exclusively 
-    /// by the `generate_arithmetic_harnesses` macro. Its purpose is to reduce code duplication, 
+    ///
+    /// Note: This macro is intended for internal use only and should be invoked exclusively
+    /// by the `generate_arithmetic_harnesses` macro. Its purpose is to reduce code duplication,
     /// and it is not meant to be used directly elsewhere in the codebase.
     macro_rules! generate_single_arithmetic_harness {
         ($ty:ty, $proof_name:ident, $fn_name:ident, $count_ty:ty) => {
