@@ -2112,7 +2112,7 @@ mod verify {
 
     /// This macro generates a single verification harness for the `offset`, `add`, or `sub`
     /// pointer operations, supporting integer, composite, or unit types.
-    /// - `$ty`: The type of the array's elements (e.g., `i32`, `u32`, tuples).
+    /// - `$ty`: The type of the slice's elements (e.g., `i32`, `u32`, tuples).
     /// - `$fn_name`: The name of the function being checked (`add`, `sub`, or `offset`).
     /// - `$proof_name`: The name assigned to the generated proof for the contract.
     /// - `$count_ty:ty`: The type of the input variable passed to the method being invoked.
@@ -2138,7 +2138,7 @@ mod verify {
 
     /// This macro generates verification harnesses for the `offset`, `add`, and `sub`
     /// pointer operations, supporting integer, composite, or unit types.
-    /// - `$ty`: The type of the array (e.g., i32, u32, tuples).
+    /// - `$ty`: The pointee type (e.g., i32, u32, tuples).
     /// - `$offset_fn_name`: The name for the `offset` proof for contract.
     /// - `$add_fn_name`: The name for the `add` proof for contract.
     /// - `$sub_fn_name`: The name for the `sub` proof for contract.
