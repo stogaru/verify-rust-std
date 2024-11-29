@@ -859,6 +859,15 @@ impl FusedIterator for Bytes<'_> {}
 #[unstable(feature = "kani", issue = "none")]
 mod verify {
     use super::*;
+    
+    // Helper function
+    fn arbitrary_cstr(slice: &[u8]) -> &CStr {
+        let result = CStr::from_bytes_until_nul(&slice);
+        kani::assume(result.is_ok());
+        let c_str = result.unwrap();
+        assert!(c_str.is_safe());
+        c_str
+    }
 
     // pub const fn from_bytes_until_nul(bytes: &[u8]) -> Result<&CStr, FromBytesUntilNulError>
     #[kani::proof]
@@ -874,5 +883,62 @@ mod verify {
         if let Ok(c_str) = result {
             assert!(c_str.is_safe());
         }
+    }
+  
+    // pub const fn count_bytes(&self) -> usize
+    #[kani::proof]
+    #[kani::unwind(32)]
+    fn check_count_bytes() {
+        const MAX_SIZE: usize = 32;
+        let mut bytes: [u8; MAX_SIZE] = kani::any();
+        
+        // Non-deterministically generate a length within the valid range [0, MAX_SIZE]
+        let mut len: usize = kani::any_where(|&x| x < MAX_SIZE);
+        
+        // If a null byte exists before the generated length
+        // adjust len to its position
+        if let Some(pos) = bytes[..len].iter().position(|&x| x == 0) {
+            len = pos;
+        } else {
+            // If no null byte, insert one at the chosen length
+            bytes[len] = 0;
+        }
+    
+        let c_str = CStr::from_bytes_until_nul(&bytes).unwrap();
+        // Verify that count_bytes matches the adjusted length
+        assert_eq!(c_str.count_bytes(), len);
+        assert!(c_str.is_safe());
+    }
+
+    // pub const fn to_bytes(&self) -> &[u8]
+    #[kani::proof]
+    #[kani::unwind(32)]
+    fn check_to_bytes() {
+        const MAX_SIZE: usize = 32;
+        let string: [u8; MAX_SIZE] = kani::any();
+        let slice = kani::slice::any_slice_of_array(&string);
+        let c_str = arbitrary_cstr(slice);
+
+        let bytes = c_str.to_bytes();
+        let end_idx = bytes.len();
+        // Comparison does not include the null byte
+        assert_eq!(bytes, &slice[..end_idx]);
+        assert!(c_str.is_safe());
+    }
+
+    // pub const fn to_bytes_with_nul(&self) -> &[u8]
+    #[kani::proof]
+    #[kani::unwind(33)]
+    fn check_to_bytes_with_nul() {
+        const MAX_SIZE: usize = 32;
+        let string: [u8; MAX_SIZE] = kani::any();
+        let slice = kani::slice::any_slice_of_array(&string);
+        let c_str = arbitrary_cstr(slice);
+
+        let bytes = c_str.to_bytes_with_nul();
+        let end_idx = bytes.len();
+        // Comparison includes the null byte
+        assert_eq!(bytes, &slice[..end_idx]);
+        assert!(c_str.is_safe());
     }
 }
