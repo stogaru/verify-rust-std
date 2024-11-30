@@ -3090,7 +3090,9 @@ mod verify {
     use crate::collections::VecDeque;
 
     #[kani::proof]
-    #[kani::stub_verified(<*mut u32>::add)]
+    // Stubbing is currently not possible for functions returning pointers as 
+    // Arbitrary trait hasn't been implemented for them
+    // #[kani::stub_verified(<*mut u32>::add)]
     fn check_vecdeque_swap() {
         const ARRAY_LEN: usize = 40;
         let mut arr: [u32; ARRAY_LEN] = kani::Arbitrary::any_array();
@@ -3115,7 +3117,7 @@ mod verify {
         // Ensure other elements remain unchanged
         for k in 0..len {
             if k != i && k != j {
-                assert_eq!(deque[k], vec![10, 20, 30, 40, 50][k]);
+                assert_eq!(deque[k], arr[k]);
             }
         }
     }
