@@ -829,7 +829,9 @@ impl<T: ?Sized> *mut T {
     /// unsafe {
     ///     let one = ptr2_other.offset_from(ptr2); // Undefined Behavior! ⚠️
     /// }
-    /// ```S
+    ///
+    ///
+    /// ```
     #[stable(feature = "ptr_offset_from", since = "1.47.0")]
     #[rustc_const_stable(feature = "const_ptr_offset_from", since = "1.65.0")]
     #[inline(always)]
@@ -2336,6 +2338,9 @@ mod verify {
 
     // Array size is bound for kani::any_array
     const ARRAY_LEN: usize = 40;
+    // The array's length is set to a random value, which defines its size.
+    // This is necessary because implementing a dynamic array is not possible.
+    // Size can be changed.
 
     macro_rules! generate_offset_from_harness {
         ($type: ty, $proof_name1: ident, $proof_name2: ident) => {
