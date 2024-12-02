@@ -2368,7 +2368,7 @@ impl<T: ?Sized> PartialOrd for *mut T {
 mod verify {
     use crate::kani;
     use core::mem;
-    // Constant for array size used in all tests, for performance reason
+    // Constant for array size used in all tests
     const ARRAY_SIZE: usize = 5;
 
     /// This macro generates verification harnesses for the `offset`, `add`, and `sub`
@@ -2450,17 +2450,6 @@ mod verify {
         ($type:ty, $proof_name:ident, add) => {
             #[kani::proof_for_contract(<*mut $type>::add)]
             pub fn $proof_name() {
-                let mut test_val: $type = kani::any::<$type>();
-                let offset: usize = kani::any();
-                let count: usize = kani::any();                
-                let test_ptr: *mut $type = &mut test_val;
-
-                // For integer, composite, and unit types, 1 is the largest offset that
-                // keeps `ptr_with_offset` within bounds.
-                kani::assume(offset <= 1); 
-                let ptr_with_offset: *mut $type = test_ptr.wrapping_add(offset);                   
-                unsafe {
-                    ptr_with_offset.add(count);
                 // 200 bytes are large enough to cover all pointee types used for testing
                 const BUF_SIZE: usize = 200;
                 let mut generator = kani::PointerGenerator::<BUF_SIZE>::new();
@@ -2474,17 +2463,6 @@ mod verify {
         ($type:ty, $proof_name:ident, sub) => {
             #[kani::proof_for_contract(<*mut $type>::sub)]
             pub fn $proof_name() {
-                let mut test_val: $type = kani::any::<$type>();
-                let offset: usize = kani::any();
-                let count: usize = kani::any();
-                let test_ptr: *mut $type = &mut test_val;
-                
-                // For integer, composite, and unit types, 1 is the largest offset that
-                // keeps `ptr_with_offset` within bounds.
-                kani::assume(offset <= 1);
-                let ptr_with_offset: *mut $type = test_ptr.wrapping_add(offset);
-                unsafe {
-                    ptr_with_offset.sub(count);
                 // 200 bytes are large enough to cover all pointee types used for testing
                 const BUF_SIZE: usize = 200;
                 let mut generator = kani::PointerGenerator::<BUF_SIZE>::new();
@@ -2498,17 +2476,6 @@ mod verify {
         ($type:ty, $proof_name:ident, offset) => {
             #[kani::proof_for_contract(<*mut $type>::offset)]
             pub fn $proof_name() {
-                let mut test_val: $type = kani::any::<$type>();
-                let offset: usize = kani::any();
-                let count: isize = kani::any();
-                let test_ptr: *mut $type = &mut test_val;
-
-                // For integer, composite, and unit types, 1 is the largest offset that
-                // keeps `ptr_with_offset` within bounds.
-                kani::assume(offset <= 1);
-                let ptr_with_offset: *mut $type = test_ptr.wrapping_add(offset);                
-                unsafe {
-                    ptr_with_offset.offset(count);
                 // 200 bytes are large enough to cover all pointee types used for testing
                 const BUF_SIZE: usize = 200;
                 let mut generator = kani::PointerGenerator::<BUF_SIZE>::new();
