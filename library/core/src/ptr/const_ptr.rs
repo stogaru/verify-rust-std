@@ -2134,7 +2134,7 @@ mod verify {
             pub fn $proof_name() {
                 let val = ();
                 let ptr: *const () = &val;
-                let count: isize = kani::any();
+                let count: isize = mem::size_of::<()>() as isize;
                 unsafe {
                     ptr.byte_offset(count);
                 }
@@ -2147,7 +2147,7 @@ mod verify {
                 let val = ();
                 let ptr: *const () = &val;
                 //byte_add and byte_sub need count to be usize unlike byte_offset
-                let count: usize = kani::any();
+                let count: usize = mem::size_of::<()>();
                 unsafe {
                     ptr.$fn_name(count);
                 }
