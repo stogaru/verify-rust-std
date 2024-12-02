@@ -67,6 +67,7 @@ use crate::str::{self, Chars, Utf8Error, from_utf8_unchecked_mut};
 use crate::str::{FromStr, from_boxed_utf8_unchecked};
 use crate::vec::Vec;
 
+
 /// A UTF-8–encoded, growable string.
 ///
 /// `String` is the most common string type. It has ownership over the contents
@@ -3217,3 +3218,42 @@ impl From<char> for String {
         c.to_string()
     }
 }
+
+
+
+#[cfg(kani)]
+#[unstable(feature = "kani", issue = "none")]
+mod verify {
+    use core::kani;
+    use crate::string::String;
+
+    #[kani::proof]
+    #[kani::unwind(9)] 
+    fn check_remove() {
+        // Use a small fixed-length ASCII string to avoid UTF-8 complexity
+        let arr: [u8; 8] = kani::any();
+        for &byte in &arr {
+            kani::assume(byte.is_ascii()); // Constrain to ASCII characters
+        }
+
+        // Convert byte array to a String directly (safe since all are ASCII)
+        let mut s = unsafe { String::from_utf8_unchecked(arr.to_vec()) };
+
+        // Ensure the string is not empty
+        kani::assume(!s.is_empty());
+
+        // Generate a valid index within the bounds of the string
+        let idx: usize = kani::any();
+        kani::assume(idx < s.len());
+
+        // Call the `remove` function
+        let removed_char = s.remove(idx);
+
+        // Verify the string length decreases correctly
+        assert_eq!(s.len(), arr.len() - 1);
+
+        // Verify the removed character is a valid ASCII character
+        assert!(removed_char.is_ascii());
+    }
+}
+
