@@ -484,8 +484,7 @@ impl<T: ?Sized> *mut T {
         // Else if count is not zero, then ensure that subtracting `count` doesn't 
         // cause overflow and that both pointers `self` and the result are in the 
         // same allocation 
-        (mem::size_of_val_raw(self) != 0 &&
-            (self.addr() as isize).checked_add(count).is_some() && 
+        ((self.addr() as isize).checked_add(count).is_some() && 
             kani::mem::same_allocation(self, self.wrapping_byte_offset(count)))
     )]
     #[ensures(|&result|
@@ -1111,8 +1110,7 @@ impl<T: ?Sized> *mut T {
         // Else if count is not zero, then ensure that subtracting `count` doesn't 
         // cause overflow and that both pointers `self` and the result are in the 
         // same allocation 
-        (mem::size_of_val_raw(self) != 0 &&
-            (self.addr() as isize).checked_add(count as isize).is_some() && 
+        ((self.addr() as isize).checked_add(count as isize).is_some() && 
             kani::mem::same_allocation(self, self.wrapping_byte_add(count)))
     )]
     #[ensures(|&result|
@@ -1258,8 +1256,7 @@ impl<T: ?Sized> *mut T {
         // Else if count is not zero, then ensure that subtracting `count` doesn't 
         // cause overflow and that both pointers `self` and the result are in the 
         // same allocation 
-        (mem::size_of_val_raw(self) != 0 &&
-            (self.addr() as isize).checked_sub(count as isize).is_some() && 
+        ((self.addr() as isize).checked_sub(count as isize).is_some() && 
             kani::mem::same_allocation(self, self.wrapping_byte_sub(count)))
     )]
     #[ensures(|&result|
@@ -2410,6 +2407,31 @@ mod verify {
     use core::mem;
     use kani::PointerGenerator;
 
+    // bounding space for PointerGenerator to accommodate 40 elements.
+    const ARRAY_LEN: usize = 40;
+
+    #[kani::proof_for_contract(<*mut ()>::byte_offset)]
+    #[kani::should_panic]
+    pub fn check_mut_byte_offset_unit_invalid_count() {
+        let mut val = ();
+        let ptr: *mut () = &mut val;
+        let count: isize = kani::any_where(|&x| x > (mem::size_of::<()>() as isize));
+        unsafe {
+            ptr.byte_offset(count);
+        }
+    }
+
+    #[kani::proof_for_contract(<*mut ()>::byte_offset)]
+    pub fn check_mut_byte_offset_cast_unit() {
+        let mut generator = PointerGenerator::<ARRAY_LEN>::new();
+        let ptr: *mut u8 = generator.any_in_bounds().ptr;
+        let ptr1: *mut () = ptr as *mut ();
+        let count: isize = kani::any();
+        unsafe {
+            ptr1.byte_offset(count);
+        }
+    }
+
     // generate proof for contracts of byte_add, byte_sub and byte_offset to verify
     // unit pointee type
     // - `$fn_name`: function for which the contract must be verified
@@ -2420,7 +2442,7 @@ mod verify {
             pub fn $proof_name() {
                 let mut val = ();
                 let ptr: *mut () = &mut val;
-                let count: isize = kani::any();
+                let count: isize = mem::size_of::<()>() as isize;
                 unsafe {
                     ptr.byte_offset(count);
                 }
@@ -2433,7 +2455,7 @@ mod verify {
                 let mut val = ();
                 let ptr: *mut () = &mut val;
                 //byte_add and byte_sub need count to be usize unlike byte_offset
-                let count: usize = kani::any();
+                let count: usize = mem::size_of::<()>();
                 unsafe {
                     ptr.$fn_name(count);
                 }
@@ -2444,9 +2466,6 @@ mod verify {
     gen_mut_byte_arith_harness_for_unit!(byte_add, check_mut_byte_add_unit);
     gen_mut_byte_arith_harness_for_unit!(byte_sub, check_mut_byte_sub_unit);
     gen_mut_byte_arith_harness_for_unit!(byte_offset, check_mut_byte_offset_unit);
-
-    // bounding space for PointerGenerator to accommodate 40 elements.
-    const ARRAY_LEN: usize = 40;
 
     // generate proof for contracts for byte_add, byte_sub and byte_offset
     // - `$type`: pointee type
