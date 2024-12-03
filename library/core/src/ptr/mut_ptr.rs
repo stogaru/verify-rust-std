@@ -404,7 +404,6 @@ impl<T: ?Sized> *mut T {
     #[rustc_const_stable(feature = "const_ptr_offset", since = "1.61.0")]
     #[inline(always)]
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
-
     // Note: It is the caller's responsibility to ensure that `self` is non-null and properly aligned.
     // These conditions are not verified as part of the preconditions.
 
@@ -1036,7 +1035,7 @@ impl<T: ?Sized> *mut T {
     )]
     // Postcondition: If `T` is a unit type (`size_of::<T>() == 0`), no allocation check is needed.
     // Otherwise, for non-unit types, ensure that `self` and `result` point to the same allocated object,
-    // verifying that the result remains within the same allocation as `self`.  
+    // verifying that the result remains within the same allocation as `self`.
     #[ensures(|result| (core::mem::size_of::<T>() == 0) || kani::mem::same_allocation(self as *const T, *result as *const T))]
     pub const unsafe fn add(self, count: usize) -> Self
     where
@@ -2502,7 +2501,7 @@ mod verify {
     generate_mut_arithmetic_harness!(u32, check_mut_add_u32, add);
     generate_mut_arithmetic_harness!(u64, check_mut_add_u64, add);
     generate_mut_arithmetic_harness!(u128, check_mut_add_u128, add);
-    generate_mut_arithmetic_harness!(usize, check_mut_add_usize, add);  
+    generate_mut_arithmetic_harness!(usize, check_mut_add_usize, add);
 
     // <*mut T>:: add() unit type verification
     generate_mut_arithmetic_harness!((), check_mut_add_unit, add);
