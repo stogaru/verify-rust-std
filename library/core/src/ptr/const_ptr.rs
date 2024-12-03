@@ -420,12 +420,12 @@ impl<T: ?Sized> *const T {
         // Precondition 3: If `T` is a unit type (`size_of::<T>() == 0`), this check is unnecessary as it has no allocated memory.
         // Otherwise, for non-unit types, `self` and `self.wrapping_offset(count)` should point to the same allocated object,
         // restricting `count` to prevent crossing allocation boundaries.
-        ((core::mem::size_of::<T>() == 0) || (kani::mem::same_allocation(self, self.wrapping_offset(count))))
+        ((core::mem::size_of::<T>() == 0) || (core::ub_checks::same_allocation(self, self.wrapping_offset(count))))
     )]
     // Postcondition: If `T` is a unit type (`size_of::<T>() == 0`), no allocation check is needed.
     // Otherwise, for non-unit types, ensure that `self` and `result` point to the same allocated object,
     // verifying that the result remains within the same allocation as `self`.
-    #[ensures(|result| (core::mem::size_of::<T>() == 0) || kani::mem::same_allocation(self, *result as *const T))]
+    #[ensures(|result| (core::mem::size_of::<T>() == 0) || core::ub_checks::same_allocation(self, *result as *const T))]
     pub const unsafe fn offset(self, count: isize) -> *const T
     where
         T: Sized,
@@ -694,7 +694,7 @@ impl<T: ?Sized> *const T {
         // Ensure the distance between `self` and `origin` is aligned to `T`
         (self as isize - origin as isize) % (mem::size_of::<T>() as isize) == 0 &&
         // Ensure both pointers are in the same allocation or are pointing to the same address
-        (self as isize == origin as isize || kani::mem::same_allocation(self, origin))
+        (self as isize == origin as isize || core::ub_checks::same_allocation(self, origin))
     )]
     // The result should equal the distance in terms of elements of type `T` as per the documentation above
     #[ensures(|result| *result == (self as isize - origin as isize) / (mem::size_of::<T>() as isize))]
@@ -961,12 +961,12 @@ impl<T: ?Sized> *const T {
         // Precondition 3: If `T` is a unit type (`size_of::<T>() == 0`), this check is unnecessary as it has no allocated memory.
         // Otherwise, for non-unit types, `self` and `self.wrapping_add(count)` should point to the same allocated object,
         // restricting `count` to prevent crossing allocation boundaries.
-        ((core::mem::size_of::<T>() == 0) || (kani::mem::same_allocation(self, self.wrapping_add(count))))
+        ((core::mem::size_of::<T>() == 0) || (core::ub_checks::same_allocation(self, self.wrapping_add(count))))
     )]
     // Postcondition: If `T` is a unit type (`size_of::<T>() == 0`), no allocation check is needed.
     // Otherwise, for non-unit types, ensure that `self` and `result` point to the same allocated object,
     // verifying that the result remains within the same allocation as `self`.
-    #[ensures(|result| (core::mem::size_of::<T>() == 0) || kani::mem::same_allocation(self, *result as *const T))]
+    #[ensures(|result| (core::mem::size_of::<T>() == 0) || core::ub_checks::same_allocation(self, *result as *const T))]
     pub const unsafe fn add(self, count: usize) -> Self
     where
         T: Sized,
@@ -1088,12 +1088,12 @@ impl<T: ?Sized> *const T {
         // Precondition 3: If `T` is a unit type (`size_of::<T>() == 0`), this check is unnecessary as it has no allocated memory.
         // Otherwise, for non-unit types, `self` and `self.wrapping_sub(count)` should point to the same allocated object,
         // restricting `count` to prevent crossing allocation boundaries.
-        ((core::mem::size_of::<T>() == 0) || (kani::mem::same_allocation(self, self.wrapping_sub(count))))
+        ((core::mem::size_of::<T>() == 0) || (core::ub_checks::same_allocation(self, self.wrapping_sub(count))))
     )]
     // Postcondition: If `T` is a unit type (`size_of::<T>() == 0`), no allocation check is needed.
     // Otherwise, for non-unit types, ensure that `self` and `result` point to the same allocated object,
     // verifying that the result remains within the same allocation as `self`.
-    #[ensures(|result| (core::mem::size_of::<T>() == 0) || kani::mem::same_allocation(self, *result as *const T))]
+    #[ensures(|result| (core::mem::size_of::<T>() == 0) || core::ub_checks::same_allocation(self, *result as *const T))]
     pub const unsafe fn sub(self, count: usize) -> Self
     where
         T: Sized,
@@ -2159,6 +2159,14 @@ mod verify {
         };
     }
 
+    // Generate harnesses for unit type (add, sub, offset)
+    generate_arithmetic_harnesses!(
+        (),
+        check_const_add_unit,
+        check_const_sub_unit,
+        check_const_offset_unit
+    );
+
     // Generate harnesses for integer types (add, sub, offset)
     generate_arithmetic_harnesses!(
         i8,
@@ -2233,14 +2241,6 @@ mod verify {
         check_const_offset_usize
     );
 
-    // Generate harnesses for unit type (add, sub, offset)
-    generate_arithmetic_harnesses!(
-        (),
-        check_const_add_unit,
-        check_const_sub_unit,
-        check_const_offset_unit
-    );
-
     // Generte harnesses for composite types (add, sub, offset)
     generate_arithmetic_harnesses!(
         (i8, i8),
@@ -2266,18 +2266,6 @@ mod verify {
         check_const_sub_tuple_4,
         check_const_offset_tuple_4
     );
-
-    // Proof for unit size will panic as offset_from needs the pointee size to be greater then 0
-    #[kani::proof_for_contract(<*const ()>::offset_from)]
-    #[kani::should_panic]
-    pub fn check_const_offset_from_unit() {
-        let val: () = ();
-        let src_ptr: *const () = &val;
-        let dest_ptr: *const () = &val;
-        unsafe {
-            dest_ptr.offset_from(src_ptr);
-        }
-    }
 
     // Array size bound for kani::any_array for `offset_from` verification
     const ARRAY_LEN: usize = 40;
@@ -2320,6 +2308,18 @@ mod verify {
                 }
             }
         };
+    }
+
+    // Proof for unit size will panic as offset_from needs the pointee size to be greater then 0
+    #[kani::proof_for_contract(<*const ()>::offset_from)]
+    #[kani::should_panic]
+    pub fn check_const_offset_from_unit() {
+        let val: () = ();
+        let src_ptr: *const () = &val;
+        let dest_ptr: *const () = &val;
+        unsafe {
+            dest_ptr.offset_from(src_ptr);
+        }
     }
 
     // fn <*const T>::offset_from() integer and integer slice types verification
