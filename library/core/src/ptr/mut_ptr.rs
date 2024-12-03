@@ -406,7 +406,6 @@ impl<T: ?Sized> *mut T {
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
     // Note: It is the caller's responsibility to ensure that `self` is non-null and properly aligned.
     // These conditions are not verified as part of the preconditions.
-
     #[requires(
         // Precondition 1: the computed offset `count * size_of::<T>()` does not overflow `isize`
         count.checked_mul(core::mem::size_of::<T>() as isize).is_some() &&
@@ -1019,7 +1018,6 @@ impl<T: ?Sized> *mut T {
     #[rustc_const_stable(feature = "const_ptr_offset", since = "1.61.0")]
     #[inline(always)]
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
-
     // Note: It is the caller's responsibility to ensure that `self` is non-null and properly aligned.
     // These conditions are not verified as part of the preconditions.
     #[requires(
@@ -1146,10 +1144,8 @@ impl<T: ?Sized> *mut T {
     #[cfg_attr(bootstrap, rustc_allow_const_fn_unstable(unchecked_neg))]
     #[inline(always)]
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
-
     // Note: It is the caller's responsibility to ensure that `self` is non-null and properly aligned.
     // These conditions are not verified as part of the preconditions.
-
     #[requires(
         // Precondition 1: the computed offset `count * size_of::<T>()` does not overflow `isize`
         count.checked_mul(core::mem::size_of::<T>()).is_some() &&
@@ -1163,8 +1159,7 @@ impl<T: ?Sized> *mut T {
     )]
     // Postcondition: If `T` is a unit type (`size_of::<T>() == 0`), no allocation check is needed.
     // Otherwise, for non-unit types, ensure that `self` and `result` point to the same allocated object,
-    // verifying that the result remains within the same allocation as `self`.  
-
+    // verifying that the result remains within the same allocation as `self`.
     #[ensures(|result| (core::mem::size_of::<T>() == 0) || kani::mem::same_allocation(self as *const T, *result as *const T))]
     pub const unsafe fn sub(self, count: usize) -> Self
     where
@@ -2437,9 +2432,7 @@ mod verify {
     generate_mut_slice_harnesses!((f64, bool), check_mut_offset_slice_tuple_2, check_mut_add_slice_tuple_2, check_mut_sub_slice_tuple_2);
     generate_mut_slice_harnesses!((i32, f64, bool), check_mut_offset_slice_tuple_3, check_mut_add_slice_tuple_3, check_mut_sub_slice_tuple_3);
     generate_mut_slice_harnesses!((i8, u16, i32, u64, isize), check_mut_offset_slice_tuple_4, check_mut_add_slice_tuple_4, check_mut_sub_slice_tuple_4);
-
-
-    // generate proof for contracts for integer type, composite type and unit type pointers
+    
 
     /// This macro generates proofs for contracts on `add`, `sub`, and `offset`
     /// operations for pointers to integer, composite, and unit types.
