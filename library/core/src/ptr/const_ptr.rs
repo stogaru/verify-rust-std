@@ -1974,151 +1974,6 @@ mod verify {
     use core::mem;
     use kani::PointerGenerator;
 
-    // Constant for array size used in all tests
-    const ARRAY_SIZE: usize = 5;
-
-    /// This macro generates a single verification harness for the `offset`, `add`, or `sub`
-    /// pointer operations for a slice type.
-    /// - `$ty`: The type of the array's elements (e.g., `i32`, `u32`, tuples).
-    /// - `$fn_name`: The name of the function being checked (`add`, `sub`, or `offset`).
-    /// - `$proof_name`: The name assigned to the generated proof for the contract.
-    /// - `$count_ty:ty`: The type of the input variable passed to the method being invoked.
-    ///
-    /// Note: This macro is intended for internal use only and should be invoked exclusively
-    /// by the `generate_slice_harnesses` macro. Its purpose is to reduce code duplication,
-    /// and it is not meant to be used directly elsewhere in the codebase.
-    macro_rules! generate_single_slice_harness {
-        ($ty:ty, $proof_name:ident, $fn_name:ident, $count_ty:ty) => {
-            #[kani::proof_for_contract(<*const $ty>::$fn_name)]
-            fn $proof_name() {
-                let arr: [$ty; ARRAY_SIZE] = kani::Arbitrary::any_array();
-                let test_ptr: *const $ty = arr.as_ptr();
-                let offset: usize = kani::any();
-                kani::assume(offset <= ARRAY_SIZE * mem::size_of::<$ty>());
-                let ptr_with_offset: *const $ty = test_ptr.wrapping_byte_add(offset);
-
-                let count: $count_ty = kani::any();
-                unsafe {
-                    ptr_with_offset.$fn_name(count);
-                }
-            }
-        };
-    }
-
-    /// This macro generates verification harnesses for the `offset`, `add`, and `sub`
-    /// pointer operations for a slice type.
-    /// - `$ty`: The type of the array (e.g., i32, u32, tuples).
-    /// - `$offset_fn_name`: The name for the `offset` proof for contract.
-    /// - `$add_fn_name`: The name for the `add` proof for contract.
-    /// - `$sub_fn_name`: The name for the `sub` proof for contract.
-    macro_rules! generate_slice_harnesses {
-        ($ty:ty, $add_fn_name:ident, $sub_fn_name:ident, $offset_fn_name:ident) => {
-            generate_single_slice_harness!($ty, $add_fn_name, add, usize);
-            generate_single_slice_harness!($ty, $sub_fn_name, sub, usize);
-            generate_single_slice_harness!($ty, $offset_fn_name, offset, isize);
-        };
-    }
-
-    // Generate slice harnesses for various types (add, sub, offset)
-    generate_slice_harnesses!(
-        i8,
-        check_const_add_slice_i8,
-        check_const_sub_slice_i8,
-        check_const_offset_slice_i8
-    );
-    generate_slice_harnesses!(
-        i16,
-        check_const_add_slice_i16,
-        check_const_sub_slice_i16,
-        check_const_offset_slice_i16
-    );
-    generate_slice_harnesses!(
-        i32,
-        check_const_add_slice_i32,
-        check_const_sub_slice_i32,
-        check_const_offset_slice_i32
-    );
-    generate_slice_harnesses!(
-        i64,
-        check_const_add_slice_i64,
-        check_const_sub_slice_i64,
-        check_const_offset_slice_i64
-    );
-    generate_slice_harnesses!(
-        i128,
-        check_const_add_slice_i128,
-        check_const_sub_slice_i128,
-        check_const_offset_slice_i128
-    );
-    generate_slice_harnesses!(
-        isize,
-        check_const_add_slice_isize,
-        check_const_sub_slice_isize,
-        check_const_offset_slice_isize
-    );
-    generate_slice_harnesses!(
-        u8,
-        check_const_add_slice_u8,
-        check_const_sub_slice_u8,
-        check_const_offset_slice_u8
-    );
-    generate_slice_harnesses!(
-        u16,
-        check_const_add_slice_u16,
-        check_const_sub_slice_u16,
-        check_const_offset_slice_u16
-    );
-    generate_slice_harnesses!(
-        u32,
-        check_const_add_slice_u32,
-        check_const_sub_slice_u32,
-        check_const_offset_slice_u32
-    );
-    generate_slice_harnesses!(
-        u64,
-        check_const_add_slice_u64,
-        check_const_sub_slice_u64,
-        check_const_offset_slice_u64
-    );
-    generate_slice_harnesses!(
-        u128,
-        check_const_add_slice_u128,
-        check_const_sub_slice_u128,
-        check_const_offset_slice_u128
-    );
-    generate_slice_harnesses!(
-        usize,
-        check_const_add_slice_usize,
-        check_const_sub_slice_usize,
-        check_const_offset_slice_usize
-    );
-
-    // Generate slice harnesses for tuples (add, sub, offset)
-    generate_slice_harnesses!(
-        (i8, i8),
-        check_const_add_slice_tuple_1,
-        check_const_sub_slice_tuple_1,
-        check_const_offset_slice_tuple_1
-    );
-    generate_slice_harnesses!(
-        (f64, bool),
-        check_const_add_slice_tuple_2,
-        check_const_sub_slice_tuple_2,
-        check_const_offset_slice_tuple_2
-    );
-    generate_slice_harnesses!(
-        (i32, f64, bool),
-        check_const_add_slice_tuple_3,
-        check_const_sub_slice_tuple_3,
-        check_const_offset_slice_tuple_3
-    );
-    generate_slice_harnesses!(
-        (i8, u16, i32, u64, isize),
-        check_const_add_slice_tuple_4,
-        check_const_sub_slice_tuple_4,
-        check_const_offset_slice_tuple_4
-    );
-
     /// This macro generates a single verification harness for the `offset`, `add`, or `sub`
     /// pointer operations, supporting integer, composite, or unit types.
     /// - `$ty`: The type of the slice's elements (e.g., `i32`, `u32`, tuples).
@@ -2265,6 +2120,151 @@ mod verify {
         check_const_add_tuple_4,
         check_const_sub_tuple_4,
         check_const_offset_tuple_4
+    );
+
+    // Constant for array size used in all tests
+    const ARRAY_SIZE: usize = 5;
+
+    /// This macro generates a single verification harness for the `offset`, `add`, or `sub`
+    /// pointer operations for a slice type.
+    /// - `$ty`: The type of the array's elements (e.g., `i32`, `u32`, tuples).
+    /// - `$fn_name`: The name of the function being checked (`add`, `sub`, or `offset`).
+    /// - `$proof_name`: The name assigned to the generated proof for the contract.
+    /// - `$count_ty:ty`: The type of the input variable passed to the method being invoked.
+    ///
+    /// Note: This macro is intended for internal use only and should be invoked exclusively
+    /// by the `generate_slice_harnesses` macro. Its purpose is to reduce code duplication,
+    /// and it is not meant to be used directly elsewhere in the codebase.
+    macro_rules! generate_single_slice_harness {
+        ($ty:ty, $proof_name:ident, $fn_name:ident, $count_ty:ty) => {
+            #[kani::proof_for_contract(<*const $ty>::$fn_name)]
+            fn $proof_name() {
+                let arr: [$ty; ARRAY_SIZE] = kani::Arbitrary::any_array();
+                let test_ptr: *const $ty = arr.as_ptr();
+                let offset: usize = kani::any();
+                kani::assume(offset <= ARRAY_SIZE * mem::size_of::<$ty>());
+                let ptr_with_offset: *const $ty = test_ptr.wrapping_byte_add(offset);
+
+                let count: $count_ty = kani::any();
+                unsafe {
+                    ptr_with_offset.$fn_name(count);
+                }
+            }
+        };
+    }
+
+    /// This macro generates verification harnesses for the `offset`, `add`, and `sub`
+    /// pointer operations for a slice type.
+    /// - `$ty`: The type of the array (e.g., i32, u32, tuples).
+    /// - `$offset_fn_name`: The name for the `offset` proof for contract.
+    /// - `$add_fn_name`: The name for the `add` proof for contract.
+    /// - `$sub_fn_name`: The name for the `sub` proof for contract.
+    macro_rules! generate_slice_harnesses {
+        ($ty:ty, $add_fn_name:ident, $sub_fn_name:ident, $offset_fn_name:ident) => {
+            generate_single_slice_harness!($ty, $add_fn_name, add, usize);
+            generate_single_slice_harness!($ty, $sub_fn_name, sub, usize);
+            generate_single_slice_harness!($ty, $offset_fn_name, offset, isize);
+        };
+    }
+
+    // Generate slice harnesses for various types (add, sub, offset)
+    generate_slice_harnesses!(
+        i8,
+        check_const_add_slice_i8,
+        check_const_sub_slice_i8,
+        check_const_offset_slice_i8
+    );
+    generate_slice_harnesses!(
+        i16,
+        check_const_add_slice_i16,
+        check_const_sub_slice_i16,
+        check_const_offset_slice_i16
+    );
+    generate_slice_harnesses!(
+        i32,
+        check_const_add_slice_i32,
+        check_const_sub_slice_i32,
+        check_const_offset_slice_i32
+    );
+    generate_slice_harnesses!(
+        i64,
+        check_const_add_slice_i64,
+        check_const_sub_slice_i64,
+        check_const_offset_slice_i64
+    );
+    generate_slice_harnesses!(
+        i128,
+        check_const_add_slice_i128,
+        check_const_sub_slice_i128,
+        check_const_offset_slice_i128
+    );
+    generate_slice_harnesses!(
+        isize,
+        check_const_add_slice_isize,
+        check_const_sub_slice_isize,
+        check_const_offset_slice_isize
+    );
+    generate_slice_harnesses!(
+        u8,
+        check_const_add_slice_u8,
+        check_const_sub_slice_u8,
+        check_const_offset_slice_u8
+    );
+    generate_slice_harnesses!(
+        u16,
+        check_const_add_slice_u16,
+        check_const_sub_slice_u16,
+        check_const_offset_slice_u16
+    );
+    generate_slice_harnesses!(
+        u32,
+        check_const_add_slice_u32,
+        check_const_sub_slice_u32,
+        check_const_offset_slice_u32
+    );
+    generate_slice_harnesses!(
+        u64,
+        check_const_add_slice_u64,
+        check_const_sub_slice_u64,
+        check_const_offset_slice_u64
+    );
+    generate_slice_harnesses!(
+        u128,
+        check_const_add_slice_u128,
+        check_const_sub_slice_u128,
+        check_const_offset_slice_u128
+    );
+    generate_slice_harnesses!(
+        usize,
+        check_const_add_slice_usize,
+        check_const_sub_slice_usize,
+        check_const_offset_slice_usize
+    );
+
+    // Generate slice harnesses for tuples (add, sub, offset)
+    generate_slice_harnesses!(
+        (i8, i8),
+        check_const_add_slice_tuple_1,
+        check_const_sub_slice_tuple_1,
+        check_const_offset_slice_tuple_1
+    );
+    generate_slice_harnesses!(
+        (f64, bool),
+        check_const_add_slice_tuple_2,
+        check_const_sub_slice_tuple_2,
+        check_const_offset_slice_tuple_2
+    );
+    generate_slice_harnesses!(
+        (i32, f64, bool),
+        check_const_add_slice_tuple_3,
+        check_const_sub_slice_tuple_3,
+        check_const_offset_slice_tuple_3
+    );
+    generate_slice_harnesses!(
+        (i8, u16, i32, u64, isize),
+        check_const_add_slice_tuple_4,
+        check_const_sub_slice_tuple_4,
+        check_const_offset_slice_tuple_4
     );
 
     // Array size bound for kani::any_array for `offset_from` verification
