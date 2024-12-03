@@ -2416,7 +2416,6 @@ mod verify {
     );
 
     // Generate harnesses for integer types (add, sub, offset)
-    
     // Due to a bug of kani the test `check_mut_add_i8` is malfunctioning for now.
     // Tracking issue: https://github.com/model-checking/kani/issues/3743
     // generate_arithmetic_harnesses!(i8, check_mut_add_i8, check_mut_sub_i8, check_mut_offset_i8);
