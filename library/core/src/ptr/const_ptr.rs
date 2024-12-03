@@ -411,12 +411,10 @@ impl<T: ?Sized> *const T {
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
     #[requires(
         // Precondition 1: the computed offset `count * size_of::<T>()` does not overflow `isize`.
-        if let Some(computed_offset) = count.checked_mul(core::mem::size_of::<T>() as isize) {
-            // Precondition 2: adding the computed offset to `self` does not cause overflow.
-            (self as isize).checked_add(computed_offset).is_some()
-        } else {
-            false
-        } &&
+        // Precondition 2: adding the computed offset to `self` does not cause overflow.
+        // These two preconditions are combined for performance reason, as multiplication is computationally expensive in Kani.
+        count.checked_mul(core::mem::size_of::<T>() as isize)
+        .map_or(false, |computed_offset| (self as isize).checked_add(computed_offset).is_some()) &&
         // Precondition 3: If `T` is a unit type (`size_of::<T>() == 0`), this check is unnecessary as it has no allocated memory.
         // Otherwise, for non-unit types, `self` and `self.wrapping_offset(count)` should point to the same allocated object,
         // restricting `count` to prevent crossing allocation boundaries.
@@ -951,13 +949,12 @@ impl<T: ?Sized> *const T {
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
     #[requires(
         // Precondition 1: the computed offset `count * size_of::<T>()` does not overflow `isize`.
-        if let Some(computed_offset) = count.checked_mul(core::mem::size_of::<T>()) {
-            computed_offset <= isize::MAX as usize &&
-            // Precondition 2: adding the computed offset to `self` does not cause overflow.
-            (self as isize).checked_add(computed_offset as isize).is_some()
-        } else {
-            false
-        } &&
+        // Precondition 2: adding the computed offset to `self` does not cause overflow.
+        // These two preconditions are combined for performance reason, as multiplication is computationally expensive in Kani. 
+        count.checked_mul(core::mem::size_of::<T>())
+        .map_or(false, |computed_offset| {
+            computed_offset <= isize::MAX as usize && (self as isize).checked_add(computed_offset as isize).is_some()
+        }) &&
         // Precondition 3: If `T` is a unit type (`size_of::<T>() == 0`), this check is unnecessary as it has no allocated memory.
         // Otherwise, for non-unit types, `self` and `self.wrapping_add(count)` should point to the same allocated object,
         // restricting `count` to prevent crossing allocation boundaries.
@@ -1078,13 +1075,12 @@ impl<T: ?Sized> *const T {
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
     #[requires(
         // Precondition 1: the computed offset `count * size_of::<T>()` does not overflow `isize`.
-        if let Some(computed_offset) = count.checked_mul(core::mem::size_of::<T>()) {
-            computed_offset <= isize::MAX as usize &&
-            // Precondition 2: substracting the computed offset from `self` does not cause overflow.
-            (self as isize).checked_sub(computed_offset as isize).is_some()
-        } else {
-            false
-        } &&
+        // Precondition 2: substracting the computed offset from `self` does not cause overflow.
+        // These two preconditions are combined for performance reason, as multiplication is computationally expensive in Kani.
+        count.checked_mul(core::mem::size_of::<T>())
+        .map_or(false, |computed_offset| {
+            computed_offset <= isize::MAX as usize && (self as isize).checked_sub(computed_offset as isize).is_some()
+        }) &&
         // Precondition 3: If `T` is a unit type (`size_of::<T>() == 0`), this check is unnecessary as it has no allocated memory.
         // Otherwise, for non-unit types, `self` and `self.wrapping_sub(count)` should point to the same allocated object,
         // restricting `count` to prevent crossing allocation boundaries.
