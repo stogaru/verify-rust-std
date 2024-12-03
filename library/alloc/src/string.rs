@@ -3230,8 +3230,8 @@ mod verify {
     #[kani::proof]
     #[kani::unwind(9)] 
     fn check_remove() {
-        // Use a small fixed-length ASCII string to avoid UTF-8 complexity
-        let arr: [u8; 8] = kani::any();
+        
+        let arr: [u8; 8] = kani::Arbitrary::any_array();
         for &byte in &arr {
             kani::assume(byte.is_ascii()); // Constrain to ASCII characters
         }
