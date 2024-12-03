@@ -4032,3 +4032,47 @@ impl<T, A: Allocator, const N: usize> TryFrom<Vec<T, A>> for [T; N] {
         Ok(array)
     }
 }
+
+#[cfg(kani)]
+#[unstable(feature = "kani", issue = "none")]
+mod verify {
+    use core::kani;
+    use crate::vec::Vec;
+
+    #[kani::proof]
+    pub fn verify_swap_remove() {
+        let mut vec = Vec::new();
+        // Creating an empty vector and then populating it with three arbitrary integers
+        for _ in 0..3 {
+            vec.push(kani::any::<i32>());
+        }
+
+        // Recording the original length and a copy of the vector for validation
+        let original_len = vec.len();
+        let original_vec = vec.clone();
+
+        // Generating a nondeterministic index which is guaranteed to be within bounds
+        let index: usize = kani::any_where(|x| *x < original_len);
+
+        let removed = vec.swap_remove(index);
+
+        // Verifying that the length of the vector decreases by one after the operation is performed
+        assert!(vec.len() == original_len - 1, "Length should decrease by 1");
+
+        // Verifying that the removed element matches the original element at the index
+        assert!(removed == original_vec[index], "Removed element should match original");
+
+        // Verifying that the removed index now contains the element originally at the vector's last index if applicable
+        if index < original_len - 1 {
+            assert!(vec[index] == original_vec[original_len - 1], "Index should contain last element");
+        }
+
+        // Check that all other unaffected elements remain unchanged
+        for i in 0..vec.len() {
+            if i != index && i < original_len - 1 {
+                assert!(vec[i] == original_vec[i], "Unaffected elements should remain unchanged");
+            }
+        }
+
+    }
+}
