@@ -2432,7 +2432,7 @@ mod verify {
     generate_mut_slice_harnesses!((f64, bool), check_mut_offset_slice_tuple_2, check_mut_add_slice_tuple_2, check_mut_sub_slice_tuple_2);
     generate_mut_slice_harnesses!((i32, f64, bool), check_mut_offset_slice_tuple_3, check_mut_add_slice_tuple_3, check_mut_sub_slice_tuple_3);
     generate_mut_slice_harnesses!((i8, u16, i32, u64, isize), check_mut_offset_slice_tuple_4, check_mut_add_slice_tuple_4, check_mut_sub_slice_tuple_4);
-    
+
 
     /// This macro generates proofs for contracts on `add`, `sub`, and `offset`
     /// operations for pointers to integer, composite, and unit types.
@@ -2526,7 +2526,7 @@ mod verify {
     generate_mut_arithmetic_harness!((i8, i8), check_mut_sub_tuple_1, sub);
     generate_mut_arithmetic_harness!((f64, bool), check_mut_sub_tuple_2, sub);
     generate_mut_arithmetic_harness!((i32, f64, bool), check_mut_sub_tuple_3, sub);
-    generate_mut_arithmetic_harness!((i8, u16, i32, u64, isize), check_mut_sub_tuple_4, sub); 
+    generate_mut_arithmetic_harness!((i8, u16, i32, u64, isize), check_mut_sub_tuple_4, sub);
 
     // fn <*mut T>::offset() integer types verification
     generate_mut_arithmetic_harness!(i8, check_mut_offset_i8, offset);
