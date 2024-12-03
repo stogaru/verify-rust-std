@@ -837,7 +837,7 @@ impl<T: ?Sized> *mut T {
     #[inline(always)]
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
     #[requires(
-        // Ensuring that subtracting 'origin' from 'self' doesnt result in an overflow
+        // Ensuring that subtracting 'origin' from 'self' doesn't result in an overflow
         (self as isize).checked_sub(origin as isize).is_some() &&
         // Ensuring that the distance between 'self' & 'origin' is aligned to `T`
         (self as isize - origin as isize) % (mem::size_of::<T>() as isize) == 0 &&
