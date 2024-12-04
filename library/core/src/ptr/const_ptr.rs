@@ -481,14 +481,13 @@ impl<T: ?Sized> *const T {
         // Else if count is not zero, then ensure that adding `count` doesn't cause 
         // overflow and that both pointers `self` and the result are in the same 
         // allocation 
-        (mem::size_of_val_raw(self) != 0 &&
-            (self.addr() as isize).checked_add(count).is_some() &&
+        ((self.addr() as isize).checked_add(count).is_some() &&
             kani::mem::same_allocation(self, self.wrapping_byte_offset(count)))
     )]
-    #[ensures(|result|
+    #[ensures(|&result|
         // The resulting pointer should either be unchanged or still point to the same allocation
-        (self.addr() == (*result).addr()) ||
-        (kani::mem::same_allocation(self, *result))
+        (self.addr() == result.addr()) ||
+        (kani::mem::same_allocation(self, result))
     )]
     pub const unsafe fn byte_offset(self, count: isize) -> Self {
         // SAFETY: the caller must uphold the safety contract for `offset`.
@@ -1030,18 +1029,17 @@ impl<T: ?Sized> *const T {
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
     #[requires(
         // If count is zero, any pointer is valid including null pointer.
-        (count == 0) || 
+        (count == 0) ||
         // Else if count is not zero, then ensure that adding `count` doesn't cause 
         // overflow and that both pointers `self` and the result are in the same 
         // allocation 
-        (mem::size_of_val_raw(self) != 0 &&
-            (self.addr() as isize).checked_add(count as isize).is_some() && 
+        ((self.addr() as isize).checked_add(count as isize).is_some() &&
             kani::mem::same_allocation(self, self.wrapping_byte_add(count)))
     )]
-    #[ensures(|result|
+    #[ensures(|&result|
         // The resulting pointer should either be unchanged or still point to the same allocation
-        (self.addr() == (*result).addr()) ||
-        (kani::mem::same_allocation(self, *result))
+        (self.addr() == result.addr()) ||
+        (kani::mem::same_allocation(self, result))
     )]
     pub const unsafe fn byte_add(self, count: usize) -> Self {
         // SAFETY: the caller must uphold the safety contract for `add`.
@@ -1175,18 +1173,17 @@ impl<T: ?Sized> *const T {
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
     #[requires(
         // If count is zero, any pointer is valid including null pointer.
-        (count == 0) || 
+        (count == 0) ||
         // Else if count is not zero, then ensure that subtracting `count` doesn't 
         // cause overflow and that both pointers `self` and the result are in the 
         // same allocation 
-        (mem::size_of_val_raw(self) != 0 &&
-            (self.addr() as isize).checked_sub(count as isize).is_some() && 
+        ((self.addr() as isize).checked_sub(count as isize).is_some() &&
             kani::mem::same_allocation(self, self.wrapping_byte_sub(count)))
     )]
-    #[ensures(|result|
+    #[ensures(|&result|
         // The resulting pointer should either be unchanged or still point to the same allocation
-        (self.addr() == (*result).addr()) ||
-        (kani::mem::same_allocation(self, *result))
+        (self.addr() == result.addr()) ||
+        (kani::mem::same_allocation(self, result))
     )]
     pub const unsafe fn byte_sub(self, count: usize) -> Self {
         // SAFETY: the caller must uphold the safety contract for `sub`.
@@ -1816,7 +1813,7 @@ impl<T: ?Sized> PartialOrd for *const T {
 
 #[cfg(kani)]
 #[unstable(feature = "kani", issue = "none")]
-pub mod verify {
+mod verify {
     use crate::kani;
     use core::mem;
     use kani::PointerGenerator;
@@ -2114,7 +2111,7 @@ pub mod verify {
         check_const_offset_slice_tuple_4
     );
 
-    // Array size bound for kani::any_array for `offset_from` verification
+    // bounding space for PointerGenerator to accommodate 40 elements.
     const ARRAY_LEN: usize = 40;
 
     macro_rules! generate_offset_from_harness {

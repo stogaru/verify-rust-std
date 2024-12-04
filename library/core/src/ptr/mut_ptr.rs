@@ -2221,7 +2221,7 @@ impl<T: ?Sized> PartialOrd for *mut T {
 
 #[cfg(kani)]
 #[unstable(feature = "kani", issue = "none")]
-pub mod verify {
+mod verify {
     use crate::kani;
     use core::mem;
     use kani::PointerGenerator;
