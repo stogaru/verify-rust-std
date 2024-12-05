@@ -2362,7 +2362,11 @@ impl<T: ?Sized> PartialOrd for *mut T {
 mod verify {
     use crate::kani;
     use core::mem;
-    // Constant for array size used in all tests
+    // Chosen for simplicity and sufficient size to test edge cases effectively
+    // Represents the number of elements in the slice or array being tested.
+    // Doesn't need to be large because all possible values for the slice are explored, 
+    // including edge cases like pointers at the start, middle, and end of the slice. 
+    // Symbolic execution generalizes across all possible elements, regardless of the actual array size.
     const ARRAY_SIZE: usize = 5;
 
     /// This macro generates verification harnesses for the `offset`, `add`, and `sub`
