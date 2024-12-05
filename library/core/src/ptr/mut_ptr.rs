@@ -477,12 +477,12 @@ impl<T: ?Sized> *mut T {
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
     #[requires(
         // If count is zero, any pointer is valid including null pointer.
-        (count == 0) || 
+        (count == 0) ||
         // Else if count is not zero, then ensure that subtracting `count` doesn't 
         // cause overflow and that both pointers `self` and the result are in the 
         // same allocation 
         (mem::size_of_val_raw(self) != 0 &&
-            (self.addr() as isize).checked_add(count).is_some() && 
+            (self.addr() as isize).checked_add(count).is_some() &&
             core::ub_checks::same_allocation(self as *const T, self.wrapping_byte_offset(count) as *const T))
     )]
     #[ensures(|result|
@@ -1103,12 +1103,12 @@ impl<T: ?Sized> *mut T {
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
     #[requires(
         // If count is zero, any pointer is valid including null pointer.
-        (count == 0) || 
+        (count == 0) ||
         // Else if count is not zero, then ensure that subtracting `count` doesn't 
         // cause overflow and that both pointers `self` and the result are in the 
         // same allocation 
         (mem::size_of_val_raw(self) != 0 &&
-            (self.addr() as isize).checked_add(count as isize).is_some() && 
+            (self.addr() as isize).checked_add(count as isize).is_some() &&
             core::ub_checks::same_allocation(self as *const T, self.wrapping_byte_add(count) as *const T))
     )]
     #[ensures(|result|
@@ -1250,12 +1250,12 @@ impl<T: ?Sized> *mut T {
     #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
     #[requires(
         // If count is zero, any pointer is valid including null pointer.
-        (count == 0) || 
+        (count == 0) ||
         // Else if count is not zero, then ensure that subtracting `count` doesn't 
         // cause overflow and that both pointers `self` and the result are in the 
         // same allocation 
         (mem::size_of_val_raw(self) != 0 &&
-            (self.addr() as isize).checked_sub(count as isize).is_some() && 
+            (self.addr() as isize).checked_sub(count as isize).is_some() &&
             core::ub_checks::same_allocation(self as *const T, self.wrapping_byte_sub(count) as *const T))
     )]
     #[ensures(|result|

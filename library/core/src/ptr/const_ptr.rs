@@ -2112,7 +2112,7 @@ mod verify {
     );
 
     // The array's length is set to an arbitrary value, which defines its size.
-    // In this case, implementing a dynamic array is not possible, because 
+    // In this case, implementing a dynamic array is not possible, because
     // PointerGenerator does not support dynamic sized arrays.
     const ARRAY_LEN: usize = 40;
 
