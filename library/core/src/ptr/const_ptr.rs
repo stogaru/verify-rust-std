@@ -2111,7 +2111,9 @@ mod verify {
         check_const_offset_slice_tuple_4
     );
 
-    // bounding space for PointerGenerator to accommodate 40 elements.
+    // The array's length is set to an arbitrary value, which defines its size.
+    // In this case, implementing a dynamic array is not possible, because 
+    // PointerGenerator does not support dynamic sized arrays.
     const ARRAY_LEN: usize = 40;
 
     macro_rules! generate_offset_from_harness {

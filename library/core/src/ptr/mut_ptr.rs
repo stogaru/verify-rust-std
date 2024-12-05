@@ -2223,7 +2223,9 @@ mod verify {
     use core::mem;
     use kani::PointerGenerator;
 
-    // bounding space for PointerGenerator to accommodate 40 elements.
+    // The array's length is set to an arbitrary value, which defines its size.
+    // In this case, implementing a dynamic array is not possible, because 
+    // PointerGenerator does not support dynamic sized arrays.
     const ARRAY_LEN: usize = 40;
 
     #[kani::proof_for_contract(<*mut ()>::byte_offset)]
