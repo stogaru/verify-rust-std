@@ -3226,12 +3226,13 @@ impl From<char> for String {
 mod verify {
     use core::kani;
     use crate::string::String;
-
+    
     #[kani::proof]
     #[kani::unwind(9)] 
     fn check_remove() {
-        
-        let arr: [u8; 8] = kani::Arbitrary::any_array();
+        // array size is chosen because it is small enough to be feasible to check exhaustively
+        const ARRAY_SIZE: usize = 8;
+        let arr: [u8; ARRAY_SIZE] = kani::Arbitrary::any_array();
         for &byte in &arr {
             kani::assume(byte.is_ascii()); // Constrain to ASCII characters
         }
@@ -3243,7 +3244,7 @@ mod verify {
         kani::assume(!s.is_empty());
 
         // Generate a valid index within the bounds of the string
-        let idx: usize = kani::any();
+        let idx: usize = kani::any_where(|&x| x < s.len());
         kani::assume(idx < s.len());
 
         // Call the `remove` function
