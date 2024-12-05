@@ -722,7 +722,7 @@ impl<T: ?Sized> *const T {
         (self.addr() as isize).checked_sub(origin.addr() as isize).is_some() &&
         // Ensure both pointers are in the same allocation or are pointing to the same address
         (self.addr() == origin.addr() ||
-            kani::mem::same_allocation(self as *const u8, origin as *const u8))
+            core::ub_checks::same_allocation(self as *const u8, origin as *const u8))
     )]
     // The result should equal the distance in terms of bytes
     #[ensures(|result| *result == (self.addr() as isize - origin.addr() as isize))]
@@ -2079,7 +2079,9 @@ mod verify {
         check_const_offset_slice_tuple_4
     );
 
-    // Array size bound for PointerGenerator
+    // The array's length is set to an arbitrary value, which defines its size.
+    // In this case, implementing a dynamic array is not possible, because 
+    // PointerGenerator or any_array() do not support dynamic sized arrays.
     const ARRAY_LEN: usize = 40;
 
     #[kani::proof]

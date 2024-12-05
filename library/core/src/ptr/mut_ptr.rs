@@ -875,7 +875,7 @@ impl<T: ?Sized> *mut T {
         (self.addr() as isize).checked_sub(origin.addr() as isize).is_some() &&
         // Ensure both pointers are in the same allocation or are pointing to the same address
         (self.addr() == origin.addr() ||
-            kani::mem::same_allocation(self as *const u8, origin as *const u8))
+            core::ub_checks::same_allocation(self as *const u8, origin as *const u8))
     )]
     // The result should equal the distance in terms of bytes
     #[ensures(|result| *result == (self.addr() as isize - origin.addr() as isize))]
@@ -2191,7 +2191,9 @@ mod verify {
     use core::mem;
     use kani::PointerGenerator;
 
-    // bound space for PointerGenerator and arrays
+    // The array's length is set to an arbitrary value, which defines its size.
+    // In this case, implementing a dynamic array is not possible, because 
+    // PointerGenerator or any_array() do not support dynamic sized arrays.
     const ARRAY_LEN: usize = 40;
 
     #[kani::proof]
@@ -2344,7 +2346,10 @@ mod verify {
         check_mut_byte_offset_from_tuple_4_arr
     );
 
-    // length of the slice generated from PointerGenerator
+    // The length of a slice is set to an arbitrary value, which defines its size.
+    // In this case, implementing a slice with a dynamic size set using kani::any() 
+    // is not possible, because PointerGenerator does not support non-deterministic 
+    // slice pointers.
     const SLICE_LEN: usize = 10;
 
     // generate proofs for contracts for byte_offset_from to verify slices
