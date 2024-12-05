@@ -414,12 +414,12 @@ impl<T: ?Sized> *mut T {
         // Precondition 3: If `T` is a unit type (`size_of::<T>() == 0`), this check is unnecessary as it has no allocated memory.
         // Otherwise, for non-unit types, `self` and `self.wrapping_offset(count)` should point to the same allocated object,
         // restricting `count` to prevent crossing allocation boundaries.
-        ((core::mem::size_of::<T>() == 0) || (kani::mem::same_allocation(self, self.wrapping_offset(count))))
+        ((core::mem::size_of::<T>() == 0) || (core::ub_checks::same_allocation(self, self.wrapping_offset(count))))
     )]
     // Postcondition: If `T` is a unit type (`size_of::<T>() == 0`), no allocation check is needed.
     // Otherwise, for non-unit types, ensure that `self` and `result` point to the same allocated object,
     // verifying that the result remains within the same allocation as `self`.
-    #[ensures(|result| (core::mem::size_of::<T>() == 0) || kani::mem::same_allocation(self as *const T, *result as *const T))]
+    #[ensures(|result| (core::mem::size_of::<T>() == 0) || core::ub_checks::same_allocation(self as *const T, *result as *const T))]
     pub const unsafe fn offset(self, count: isize) -> *mut T
     where
         T: Sized,
@@ -483,12 +483,12 @@ impl<T: ?Sized> *mut T {
         // same allocation 
         (mem::size_of_val_raw(self) != 0 &&
             (self.addr() as isize).checked_add(count).is_some() && 
-            kani::mem::same_allocation(self as *const T, self.wrapping_byte_offset(count) as *const T))
+            core::ub_checks::same_allocation(self as *const T, self.wrapping_byte_offset(count) as *const T))
     )]
     #[ensures(|result|
         // The resulting pointer should either be unchanged or still point to the same allocation
         (self.addr() == (*result).addr()) ||
-        (kani::mem::same_allocation(self as *const T, *result as *const T))
+        (core::ub_checks::same_allocation(self as *const T, *result as *const T))
     )]
     pub const unsafe fn byte_offset(self, count: isize) -> Self {
         // SAFETY: the caller must uphold the safety contract for `offset`.
@@ -1043,12 +1043,12 @@ impl<T: ?Sized> *mut T {
         // Precondition 3: If `T` is a unit type (`size_of::<T>() == 0`), this check is unnecessary as it has no allocated memory.
         // Otherwise, for non-unit types, `self` and `self.wrapping_add(count)` should point to the same allocated object,
         // restricting `count` to prevent crossing allocation boundaries.
-        ((core::mem::size_of::<T>() == 0) || (kani::mem::same_allocation(self, self.wrapping_add(count))))
+        ((core::mem::size_of::<T>() == 0) || (core::ub_checks::same_allocation(self, self.wrapping_add(count))))
     )]
     // Postcondition: If `T` is a unit type (`size_of::<T>() == 0`), no allocation check is needed.
     // Otherwise, for non-unit types, ensure that `self` and `result` point to the same allocated object,
     // verifying that the result remains within the same allocation as `self`.
-    #[ensures(|result| (core::mem::size_of::<T>() == 0) || kani::mem::same_allocation(self as *const T, *result as *const T))]
+    #[ensures(|result| (core::mem::size_of::<T>() == 0) || core::ub_checks::same_allocation(self as *const T, *result as *const T))]
     pub const unsafe fn add(self, count: usize) -> Self
     where
         T: Sized,
@@ -1109,12 +1109,12 @@ impl<T: ?Sized> *mut T {
         // same allocation 
         (mem::size_of_val_raw(self) != 0 &&
             (self.addr() as isize).checked_add(count as isize).is_some() && 
-            kani::mem::same_allocation(self as *const T, self.wrapping_byte_add(count) as *const T))
+            core::ub_checks::same_allocation(self as *const T, self.wrapping_byte_add(count) as *const T))
     )]
     #[ensures(|result|
         // The resulting pointer should either be unchanged or still point to the same allocation
         (self.addr() == (*result).addr()) ||
-        (kani::mem::same_allocation(self as *const T, *result as *const T))
+        (core::ub_checks::same_allocation(self as *const T, *result as *const T))
     )]
     pub const unsafe fn byte_add(self, count: usize) -> Self {
         // SAFETY: the caller must uphold the safety contract for `add`.
@@ -1184,12 +1184,12 @@ impl<T: ?Sized> *mut T {
         // Precondition 3: If `T` is a unit type (`size_of::<T>() == 0`), this check is unnecessary as it has no allocated memory.
         // Otherwise, for non-unit types, `self` and `self.wrapping_sub(count)` should point to the same allocated object,
         // restricting `count` to prevent crossing allocation boundaries.
-        ((core::mem::size_of::<T>() == 0) || (kani::mem::same_allocation(self, self.wrapping_sub(count))))
+        ((core::mem::size_of::<T>() == 0) || (core::ub_checks::same_allocation(self, self.wrapping_sub(count))))
     )]
     // Postcondition: If `T` is a unit type (`size_of::<T>() == 0`), no allocation check is needed.
     // Otherwise, for non-unit types, ensure that `self` and `result` point to the same allocated object,
     // verifying that the result remains within the same allocation as `self`.
-    #[ensures(|result| (core::mem::size_of::<T>() == 0) || kani::mem::same_allocation(self as *const T, *result as *const T))]
+    #[ensures(|result| (core::mem::size_of::<T>() == 0) || core::ub_checks::same_allocation(self as *const T, *result as *const T))]
     pub const unsafe fn sub(self, count: usize) -> Self
     where
         T: Sized,
@@ -1256,12 +1256,12 @@ impl<T: ?Sized> *mut T {
         // same allocation 
         (mem::size_of_val_raw(self) != 0 &&
             (self.addr() as isize).checked_sub(count as isize).is_some() && 
-            kani::mem::same_allocation(self as *const T, self.wrapping_byte_sub(count) as *const T))
+            core::ub_checks::same_allocation(self as *const T, self.wrapping_byte_sub(count) as *const T))
     )]
     #[ensures(|result|
         // The resulting pointer should either be unchanged or still point to the same allocation
         (self.addr() == (*result).addr()) ||
-        (kani::mem::same_allocation(self as *const T, *result as *const T))
+        (core::ub_checks::same_allocation(self as *const T, *result as *const T))
     )]
     pub const unsafe fn byte_sub(self, count: usize) -> Self {
         // SAFETY: the caller must uphold the safety contract for `sub`.
@@ -2380,10 +2380,10 @@ mod verify {
     /// - `$proof_name`: Specifies the name of the generated proof for contract.
     macro_rules! gen_mut_byte_arith_harness_for_dyn {
         (byte_offset, $proof_name:ident) => {
+            //tracking issue: https://github.com/model-checking/kani/issues/3763
             // Workaround: Directly verifying the method `<*mut dyn TestTrait>::byte_offset`
-            // causes a compilation error: "Failed to resolve checking function <*mut dyn TestTrait>::byte_offset
-            // because Expected a type, but found trait object paths `dyn TestTrait`".
-            // As a result, the proof is annotated for the underlying struct type instead.
+            // causes a compilation error. As a workaround, the proof is annotated with the
+            // underlying struct type instead.
             #[kani::proof_for_contract(<*mut TestStruct>::byte_offset)]
             pub fn $proof_name() {
                 let mut test_struct = TestStruct { value: 42 };
@@ -2398,10 +2398,10 @@ mod verify {
             }
         };
         ($fn_name: ident, $proof_name:ident) => {
+            //tracking issue: https://github.com/model-checking/kani/issues/3763
             // Workaround: Directly verifying the method `<*mut dyn TestTrait>::$fn_name`
-            // causes a compilation error: "Failed to resolve checking function <*mut dyn TestTrait>::byte_offset
-            // because Expected a type, but found trait object paths `dyn TestTrait`".
-            // As a result, the proof is annotated for the underlying struct type instead.
+            // causes a compilation error. As a workaround, the proof is annotated with the
+            // underlying struct type instead.
             #[kani::proof_for_contract(<*mut TestStruct>::$fn_name)]
             pub fn $proof_name() {
                 let mut test_struct = TestStruct { value: 42 };

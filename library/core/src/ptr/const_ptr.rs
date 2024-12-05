@@ -482,12 +482,12 @@ impl<T: ?Sized> *const T {
         // overflow and that both pointers `self` and the result are in the same 
         // allocation 
         ((self.addr() as isize).checked_add(count).is_some() &&
-            kani::mem::same_allocation(self, self.wrapping_byte_offset(count)))
+            core::ub_checks::same_allocation(self, self.wrapping_byte_offset(count)))
     )]
     #[ensures(|&result|
         // The resulting pointer should either be unchanged or still point to the same allocation
         (self.addr() == result.addr()) ||
-        (kani::mem::same_allocation(self, result))
+        (core::ub_checks::same_allocation(self, result))
     )]
     pub const unsafe fn byte_offset(self, count: isize) -> Self {
         // SAFETY: the caller must uphold the safety contract for `offset`.
@@ -1034,12 +1034,12 @@ impl<T: ?Sized> *const T {
         // overflow and that both pointers `self` and the result are in the same 
         // allocation 
         ((self.addr() as isize).checked_add(count as isize).is_some() &&
-            kani::mem::same_allocation(self, self.wrapping_byte_add(count)))
+            core::ub_checks::same_allocation(self, self.wrapping_byte_add(count)))
     )]
     #[ensures(|&result|
         // The resulting pointer should either be unchanged or still point to the same allocation
         (self.addr() == result.addr()) ||
-        (kani::mem::same_allocation(self, result))
+        (core::ub_checks::same_allocation(self, result))
     )]
     pub const unsafe fn byte_add(self, count: usize) -> Self {
         // SAFETY: the caller must uphold the safety contract for `add`.
@@ -1178,12 +1178,12 @@ impl<T: ?Sized> *const T {
         // cause overflow and that both pointers `self` and the result are in the 
         // same allocation 
         ((self.addr() as isize).checked_sub(count as isize).is_some() &&
-            kani::mem::same_allocation(self, self.wrapping_byte_sub(count)))
+            core::ub_checks::same_allocation(self, self.wrapping_byte_sub(count)))
     )]
     #[ensures(|&result|
         // The resulting pointer should either be unchanged or still point to the same allocation
         (self.addr() == result.addr()) ||
-        (kani::mem::same_allocation(self, result))
+        (core::ub_checks::same_allocation(self, result))
     )]
     pub const unsafe fn byte_sub(self, count: usize) -> Self {
         // SAFETY: the caller must uphold the safety contract for `sub`.
@@ -2111,7 +2111,9 @@ mod verify {
         check_const_offset_slice_tuple_4
     );
 
-    // bounding space for PointerGenerator to accommodate 40 elements.
+    // The array's length is set to an arbitrary value, which defines its size.
+    // In this case, implementing a dynamic array is not possible, because 
+    // PointerGenerator does not support dynamic sized arrays.
     const ARRAY_LEN: usize = 40;
 
     macro_rules! generate_offset_from_harness {
@@ -2260,10 +2262,10 @@ mod verify {
 
     macro_rules! gen_const_byte_arith_harness_for_dyn {
         (byte_offset, $proof_name:ident) => {
+            // tracking issue: https://github.com/model-checking/kani/issues/3763
             // Workaround: Directly verifying the method `<*const dyn TestTrait>::byte_offset`
-            // causes a compilation error: "Failed to resolve checking function <*const dyn TestTrait>::byte_offset
-            // because Expected a type, but found trait object paths `dyn TestTrait`".
-            // As a result, the proof is annotated for the underlying struct type instead.
+            // causes a compilation error. As a workaround, the proof is annotated with the
+            // underlying struct type instead.
             #[kani::proof_for_contract(<*const TestStruct>::byte_offset)]
             pub fn $proof_name() {
                 let test_struct = TestStruct { value: 42 };
@@ -2279,10 +2281,10 @@ mod verify {
         };
 
         ($fn_name: ident, $proof_name:ident) => {
+            //tracking issue: https://github.com/model-checking/kani/issues/3763
             // Workaround: Directly verifying the method `<*const dyn TestTrait>::$fn_name`
-            // causes a compilation error: "Failed to resolve checking function <*const dyn TestTrait>::byte_offset
-            // because Expected a type, but found trait object paths `dyn TestTrait`".
-            // As a result, the proof is annotated for the underlying struct type instead.
+            // causes a compilation error. As a workaround, the proof is annotated with the
+            // underlying struct type instead.
             #[kani::proof_for_contract(<*const TestStruct>::$fn_name)]
             pub fn $proof_name() {
                 let test_struct = TestStruct { value: 42 };
