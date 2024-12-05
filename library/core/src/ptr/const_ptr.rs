@@ -482,12 +482,12 @@ impl<T: ?Sized> *const T {
         // overflow and that both pointers `self` and the result are in the same 
         // allocation 
         ((self.addr() as isize).checked_add(count).is_some() &&
-            kani::mem::same_allocation(self, self.wrapping_byte_offset(count)))
+            core::ub_checks::same_allocation(self, self.wrapping_byte_offset(count)))
     )]
     #[ensures(|&result|
         // The resulting pointer should either be unchanged or still point to the same allocation
         (self.addr() == result.addr()) ||
-        (kani::mem::same_allocation(self, result))
+        (core::ub_checks::same_allocation(self, result))
     )]
     pub const unsafe fn byte_offset(self, count: isize) -> Self {
         // SAFETY: the caller must uphold the safety contract for `offset`.
@@ -1034,12 +1034,12 @@ impl<T: ?Sized> *const T {
         // overflow and that both pointers `self` and the result are in the same 
         // allocation 
         ((self.addr() as isize).checked_add(count as isize).is_some() &&
-            kani::mem::same_allocation(self, self.wrapping_byte_add(count)))
+            core::ub_checks::same_allocation(self, self.wrapping_byte_add(count)))
     )]
     #[ensures(|&result|
         // The resulting pointer should either be unchanged or still point to the same allocation
         (self.addr() == result.addr()) ||
-        (kani::mem::same_allocation(self, result))
+        (core::ub_checks::same_allocation(self, result))
     )]
     pub const unsafe fn byte_add(self, count: usize) -> Self {
         // SAFETY: the caller must uphold the safety contract for `add`.
@@ -1178,12 +1178,12 @@ impl<T: ?Sized> *const T {
         // cause overflow and that both pointers `self` and the result are in the 
         // same allocation 
         ((self.addr() as isize).checked_sub(count as isize).is_some() &&
-            kani::mem::same_allocation(self, self.wrapping_byte_sub(count)))
+            core::ub_checks::same_allocation(self, self.wrapping_byte_sub(count)))
     )]
     #[ensures(|&result|
         // The resulting pointer should either be unchanged or still point to the same allocation
         (self.addr() == result.addr()) ||
-        (kani::mem::same_allocation(self, result))
+        (core::ub_checks::same_allocation(self, result))
     )]
     pub const unsafe fn byte_sub(self, count: usize) -> Self {
         // SAFETY: the caller must uphold the safety contract for `sub`.
