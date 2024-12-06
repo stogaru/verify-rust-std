@@ -3228,7 +3228,15 @@ mod verify {
     use crate::string::String;
     
     #[kani::proof]
-    #[kani::unwind(9)] 
+    #[kani::unwind(9)]  // Unwind up to 9 times
+    /// This proof harness verifies the correctness and safety of the `String::remove`
+    /// 
+    /// The harness checks:
+    /// 1. The string length decreases by one after the `remove` operation.
+    /// 2. The removed character is valid ASCII.
+    /// 3. The removed character matches the character at the specified index in the original string.
+    /// 
+    /// This ensures the `remove` function behaves as expected for constrained inputs.
     fn check_remove() {
         // array size is chosen because it is small enough to be feasible to check exhaustively
         const ARRAY_SIZE: usize = 8;
