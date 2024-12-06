@@ -2508,7 +2508,7 @@ mod verify {
         byte_offset,
         check_const_byte_offset_usize_slice
     );
-    
+
     trait TestTrait {}
 
     struct TestStruct {
@@ -2516,7 +2516,7 @@ mod verify {
     }
 
     impl TestTrait for TestStruct {}
-    
+
     // generate `dyn Trait` proof for contracts for byte_add, byte_sub and byte_offset.
     // - `$fn_name`: function for which the contract must be verified
     // - `$proof_name`: name of the harness generated
@@ -2533,6 +2533,7 @@ mod verify {
                 let test_ptr: *const dyn TestTrait = trait_object;
 
                 let count: isize = kani::any();
+
                 unsafe {
                     test_ptr.byte_offset(count);
                 }
