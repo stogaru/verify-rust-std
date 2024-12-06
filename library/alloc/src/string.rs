@@ -67,7 +67,6 @@ use crate::str::{self, Chars, Utf8Error, from_utf8_unchecked_mut};
 use crate::str::{FromStr, from_boxed_utf8_unchecked};
 use crate::vec::Vec;
 
-
 /// A UTF-8–encoded, growable string.
 ///
 /// `String` is the most common string type. It has ownership over the contents
