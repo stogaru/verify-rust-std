@@ -3245,7 +3245,9 @@ mod verify {
 
         // Generate a valid index within the bounds of the string
         let idx: usize = kani::any_where(|&x| x < s.len());
-        kani::assume(idx < s.len());
+
+        // Store the character at the index `idx` before calling `remove`
+        let original_char = s.chars().nth(idx).expect("Index out of bounds");
 
         // Call the `remove` function
         let removed_char = s.remove(idx);
@@ -3255,6 +3257,9 @@ mod verify {
 
         // Verify the removed character is a valid ASCII character
         assert!(removed_char.is_ascii());
+
+        // Assert that the removed character matches the original character at `idx`
+        assert_eq!(removed_char, original_char);
     }
 }
 
