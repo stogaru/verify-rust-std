@@ -2509,8 +2509,10 @@ mod verify {
         check_const_byte_offset_usize_slice
     );
 
+    // Trait used exclusively for implementing proofs for contracts for `dyn Trait` type.
     trait TestTrait {}
 
+    // Struct used exclusively for implementing proofs for contracts for `dyn Trait` type.
     struct TestStruct {
         value: i64,
     }

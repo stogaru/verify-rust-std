@@ -2749,8 +2749,10 @@ mod verify {
     gen_mut_byte_arith_harness_for_slice!(u128, byte_offset, check_mut_byte_offset_u128_slice);
     gen_mut_byte_arith_harness_for_slice!(usize, byte_offset, check_mut_byte_offset_usize_slice);
 
+    // Trait used exclusively for implementing proofs for contracts for `dyn Trait` type.
     trait TestTrait {}
 
+    // Struct used exclusively for implementing proofs for contracts for `dyn Trait` type.
     struct TestStruct {
         value: i64,
     }
