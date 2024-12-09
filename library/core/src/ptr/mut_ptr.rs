@@ -2817,8 +2817,7 @@ mod verify {
     gen_mut_byte_arith_harness_for_dyn!(byte_add, check_mut_byte_add_dyn);
     gen_mut_byte_arith_harness_for_dyn!(byte_sub, check_mut_byte_sub_dyn);
     gen_mut_byte_arith_harness_for_dyn!(byte_offset, check_mut_byte_offset_dyn);
-  
-    
+
     #[kani::proof]
     pub fn check_mut_byte_offset_from_fixed_offset() {
         let mut arr: [u32; ARRAY_LEN] = kani::Arbitrary::any_array();
@@ -2827,7 +2826,10 @@ mod verify {
         let self_ptr: *mut u32 = unsafe { origin_ptr.byte_offset(offset as isize) };
         let result: isize = unsafe { self_ptr.byte_offset_from(origin_ptr) };
         assert_eq!(result, offset as isize);
-        assert_eq!(result, (self_ptr.addr() as isize - origin_ptr.addr() as isize));
+        assert_eq!(
+            result,
+            (self_ptr.addr() as isize - origin_ptr.addr() as isize)
+        );
     }
 
     // Proof for unit size
@@ -2970,8 +2972,8 @@ mod verify {
     );
 
     // The length of a slice is set to an arbitrary value, which defines its size.
-    // In this case, implementing a slice with a dynamic size set using kani::any() 
-    // is not possible, because PointerGenerator does not support non-deterministic 
+    // In this case, implementing a slice with a dynamic size set using kani::any()
+    // is not possible, because PointerGenerator does not support non-deterministic
     // slice pointers.
     const SLICE_LEN: usize = 10;
 
