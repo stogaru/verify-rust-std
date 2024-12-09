@@ -2528,8 +2528,7 @@ mod verify {
 
     #[kani::proof_for_contract(<*mut ()>::byte_offset)]
     pub fn check_mut_byte_offset_cast_unit() {
-        let mut generator = PointerGenerator::<
-      >::new();
+        let mut generator = PointerGenerator::<ARRAY_LEN>::new();
         let ptr: *mut u8 = generator.any_in_bounds().ptr;
         let ptr1: *mut () = ptr as *mut ();
         let count: isize = kani::any();
