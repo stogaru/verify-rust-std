@@ -2843,8 +2843,8 @@ mod verify {
         }
     }
 
-    // Generate proofs for contracts for byte_offset_from to verify int and composite
-    // types.
+    // Generate proofs for contracts for byte_offset_from to verify pointer to int
+    // and composite types.
     // - `$type`: pointee type.
     // - `$proof_name1`: name of the harness for single element.
     // - `$proof_name2`: name of the harness for array of elements.
@@ -2977,9 +2977,9 @@ mod verify {
     // slice pointers.
     const SLICE_LEN: usize = 10;
 
-    // generate proofs for contracts for byte_offset_from to verify slices
-    // - `$type`: type of the underlyign element within the slice pointer
-    // - `$proof_name`: name of the harness
+    // Generate proofs for contracts for byte_offset_from to verify pointers to slices
+    // - `$type`: type of the underlyign element within the slice pointer.
+    // - `$proof_name`: name of the harness.
     macro_rules! generate_mut_byte_offset_from_slice_harness {
         ($type: ty, $proof_name: ident) => {
             #[kani::proof_for_contract(<*mut [$type]>::byte_offset_from)]

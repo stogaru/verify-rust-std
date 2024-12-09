@@ -2609,7 +2609,7 @@ mod verify {
     // - `$proof_name2`: name of the harness for array of elements
     macro_rules! generate_const_byte_offset_from_harness {
         ($type: ty, $proof_name1: ident, $proof_name2: ident) => {
-            // Proof for a single element
+            // Proof for pointers to a single element
             #[kani::proof_for_contract(<*const $type>::byte_offset_from)]
             pub fn $proof_name1() {
                 const gen_size: usize = mem::size_of::<$type>();
@@ -2627,7 +2627,7 @@ mod verify {
                 }
             }
 
-            // Proof for large arrays
+            // Proof for pointers to large arrays
             #[kani::proof_for_contract(<*const $type>::byte_offset_from)]
             pub fn $proof_name2() {
                 const gen_size: usize = mem::size_of::<$type>();
@@ -2730,12 +2730,12 @@ mod verify {
         check_const_byte_offset_from_tuple_4_arr
     );
 
-    // length of the slice generated from PointerGenerator
+    // Length of the slice generated from PointerGenerator.
     const SLICE_LEN: usize = 10;
 
-    // generate proofs for contracts for byte_offset_from to verify slices
-    // - `$type`: type of the underlyign element within the slice pointer
-    // - `$proof_name`: name of the harness
+    // Generate proofs for contracts for byte_offset_from to verify slice pointee types.
+    // - `$type`: type of the underlyign element within the slice pointer.
+    // - `$proof_name`: name of the harness.
     macro_rules! generate_const_byte_offset_from_slice_harness {
         ($type: ty, $proof_name: ident) => {
             #[kani::proof_for_contract(<*const [$type]>::byte_offset_from)]
