@@ -3015,7 +3015,7 @@ mod verify {
     generate_mut_byte_offset_from_slice_harness!(i128, check_mut_byte_offset_from_i128_slice);
     generate_mut_byte_offset_from_slice_harness!(isize, check_mut_byte_offset_from_isize_slice);
 
-    //tracking issue: https://github.com/model-checking/kani/issues/3763
+    // tracking issue: https://github.com/model-checking/kani/issues/3763
     // Workaround: Directly verifying the method `<*mut dyn TestTrait>::byte_offset_from`
     // causes a compilation error. As a workaround, the proof is annotated with the
     // underlying struct type instead.
