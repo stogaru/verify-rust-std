@@ -3024,20 +3024,20 @@ mod verify {
         const gen_size: usize = mem::size_of::<TestStruct>();
         // Since the pointer generator cannot directly create pointers to `dyn Trait`,
         // we first generate a pointer to the underlying struct and then cast it to a `dyn Trait` pointer.
-        let mut generator1 = PointerGenerator::<gen_size>::new();
-        let mut generator2 = PointerGenerator::<gen_size>::new();
-        let ptr1: *mut TestStruct = generator1.any_in_bounds().ptr;
-        let ptr2: *mut TestStruct = if kani::any() {
-            generator1.any_alloc_status().ptr
+        let mut generator_caller = PointerGenerator::<gen_size>::new();
+        let mut generator_input = PointerGenerator::<gen_size>::new();
+        let ptr_caller: *mut TestStruct = generator_caller.any_in_bounds().ptr;
+        let ptr_input: *mut TestStruct = if kani::any() {
+            generator_caller.any_alloc_status().ptr
         } else {
-            generator2.any_alloc_status().ptr
+            generator_input.any_alloc_status().ptr
         };
 
-        let ptr1 = ptr1 as *mut dyn TestTrait;
-        let ptr2 = ptr2 as *mut dyn TestTrait;
+        let ptr_caller = ptr_caller as *mut dyn TestTrait;
+        let ptr_input = ptr_input as *mut dyn TestTrait;
 
         unsafe {
-            ptr1.byte_offset_from(ptr2);
+            ptr_caller.byte_offset_from(ptr_input);
         }
     }
 }
