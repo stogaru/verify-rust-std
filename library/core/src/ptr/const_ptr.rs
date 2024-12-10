@@ -2771,7 +2771,7 @@ mod verify {
     generate_const_byte_offset_from_slice_harness!(i64, check_const_byte_offset_from_i64_slice);
     generate_const_byte_offset_from_slice_harness!(i128, check_const_byte_offset_from_i128_slice);
     generate_const_byte_offset_from_slice_harness!(isize, check_const_byte_offset_from_isize_slice);
-  
+
     // tracking issue: https://github.com/model-checking/kani/issues/3763
     // Workaround: Directly verifying the method `<*const dyn TestTrait>::byte_offset_from`
     // causes a compilation error. As a workaround, the proof is annotated with the
