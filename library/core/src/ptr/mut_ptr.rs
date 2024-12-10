@@ -2242,6 +2242,82 @@ impl<T: ?Sized> PartialOrd for *mut T {
 mod verify {
     use crate::kani;
     use core::mem;
+
+    // Chosen for simplicity and sufficient size to test edge cases effectively
+    // Represents the number of elements in the slice or array being tested.
+    // Doesn't need to be large because all possible values for the slice are explored, 
+    // including edge cases like pointers at the start, middle, and end of the slice. 
+    // Symbolic execution generalizes across all possible elements, regardless of the actual array size.
+    const ARRAY_SIZE: usize = 5;
+
+    /// This macro generates verification harnesses for the `offset`, `add`, and `sub`
+    /// pointer operations for a slice type and function name.
+    macro_rules! generate_mut_slice_harnesses {
+        ($ty:ty, $offset_fn:ident, $add_fn:ident, $sub_fn:ident) => {
+            // Generates a harness for the `offset` operation
+            #[kani::proof_for_contract(<*mut $ty>::offset)]
+            fn $offset_fn() {
+                let mut arr: [$ty; ARRAY_SIZE] = kani::Arbitrary::any_array();
+                let test_ptr: *mut $ty = arr.as_mut_ptr();
+                let offset: usize = kani::any();
+                let count: isize = kani::any();
+                kani::assume(offset <= ARRAY_SIZE * mem::size_of::<$ty>());
+                let ptr_with_offset: *mut $ty = test_ptr.wrapping_byte_add(offset);                
+                unsafe {
+                    ptr_with_offset.offset(count);
+                }
+            }
+
+            // Generates a harness for the `add` operation
+            #[kani::proof_for_contract(<*mut $ty>::add)]
+            fn $add_fn() {
+                let mut arr: [$ty; ARRAY_SIZE] = kani::Arbitrary::any_array();
+                let test_ptr: *mut $ty = arr.as_mut_ptr();
+                let offset: usize = kani::any();
+                let count: usize = kani::any();
+                kani::assume(offset <= ARRAY_SIZE * mem::size_of::<$ty>());
+                let ptr_with_offset: *mut $ty = test_ptr.wrapping_byte_add(offset);                
+                unsafe {
+                    ptr_with_offset.add(count);
+                }
+            }
+
+            // Generates a harness for the `sub` operation
+            #[kani::proof_for_contract(<*mut $ty>::sub)]
+            fn $sub_fn() {
+                let mut arr: [$ty; ARRAY_SIZE] = kani::Arbitrary::any_array();
+                let test_ptr: *mut $ty = arr.as_mut_ptr();
+                let offset: usize = kani::any();
+                let count: usize = kani::any();
+                kani::assume(offset <= ARRAY_SIZE * mem::size_of::<$ty>());
+                let ptr_with_offset: *mut $ty = test_ptr.wrapping_byte_add(offset);                
+                unsafe {
+                    ptr_with_offset.sub(count);
+                }
+            }
+        };
+    }
+
+    // Generate pointer harnesses for various types (offset, add, sub)
+    generate_mut_slice_harnesses!(i8, check_mut_offset_slice_i8, check_mut_add_slice_i8, check_mut_sub_slice_i8);
+    generate_mut_slice_harnesses!(i16, check_mut_offset_slice_i16, check_mut_add_slice_i16, check_mut_sub_slice_i16);
+    generate_mut_slice_harnesses!(i32, check_mut_offset_slice_i32, check_mut_add_slice_i32, check_mut_sub_slice_i32);
+    generate_mut_slice_harnesses!(i64, check_mut_offset_slice_i64, check_mut_add_slice_i64, check_mut_sub_slice_i64);
+    generate_mut_slice_harnesses!(i128, check_mut_offset_slice_i128, check_mut_add_slice_i128, check_mut_sub_slice_i128);
+    generate_mut_slice_harnesses!(isize, check_mut_offset_slice_isize, check_mut_add_slice_isize, check_mut_sub_slice_isize);
+    generate_mut_slice_harnesses!(u8, check_mut_offset_slice_u8, check_mut_add_slice_u8, check_mut_sub_slice_u8);
+    generate_mut_slice_harnesses!(u16, check_mut_offset_slice_u16, check_mut_add_slice_u16, check_mut_sub_slice_u16);
+    generate_mut_slice_harnesses!(u32, check_mut_offset_slice_u32, check_mut_add_slice_u32, check_mut_sub_slice_u32);
+    generate_mut_slice_harnesses!(u64, check_mut_offset_slice_u64, check_mut_add_slice_u64, check_mut_sub_slice_u64);
+    generate_mut_slice_harnesses!(u128, check_mut_offset_slice_u128, check_mut_add_slice_u128, check_mut_sub_slice_u128);
+    generate_mut_slice_harnesses!(usize, check_mut_offset_slice_usize, check_mut_add_slice_usize, check_mut_sub_slice_usize);
+
+    // Generate pointer harnesses for tuples (offset, add, sub)
+    generate_mut_slice_harnesses!((i8, i8), check_mut_offset_slice_tuple_1, check_mut_add_slice_tuple_1, check_mut_sub_slice_tuple_1);
+    generate_mut_slice_harnesses!((f64, bool), check_mut_offset_slice_tuple_2, check_mut_add_slice_tuple_2, check_mut_sub_slice_tuple_2);
+    generate_mut_slice_harnesses!((i32, f64, bool), check_mut_offset_slice_tuple_3, check_mut_add_slice_tuple_3, check_mut_sub_slice_tuple_3);
+    generate_mut_slice_harnesses!((i8, u16, i32, u64, isize), check_mut_offset_slice_tuple_4, check_mut_add_slice_tuple_4, check_mut_sub_slice_tuple_4);
+
     use kani::PointerGenerator;
 
     /// This macro generates a single verification harness for the `offset`, `add`, or `sub`
@@ -2763,6 +2839,7 @@ mod verify {
     trait TestTrait {}
 
     // Struct used exclusively for implementing proofs for contracts for `dyn Trait` type.
+    #[cfg_attr(kani, derive(kani::Arbitrary))]
     struct TestStruct {
         value: i64,
     }
@@ -2775,7 +2852,7 @@ mod verify {
     /// - `$proof_name`: Specifies the name of the generated proof for contract.
     macro_rules! gen_mut_byte_arith_harness_for_dyn {
         (byte_offset, $proof_name:ident) => {
-            //tracking issue: https://github.com/model-checking/kani/issues/3763
+            // tracking issue: https://github.com/model-checking/kani/issues/3763
             // Workaround: Directly verifying the method `<*mut dyn TestTrait>::byte_offset`
             // causes a compilation error. As a workaround, the proof is annotated with the
             // underlying struct type instead.
@@ -2793,7 +2870,7 @@ mod verify {
             }
         };
         ($fn_name: ident, $proof_name:ident) => {
-            //tracking issue: https://github.com/model-checking/kani/issues/3763
+            // tracking issue: https://github.com/model-checking/kani/issues/3763
             // Workaround: Directly verifying the method `<*mut dyn TestTrait>::$fn_name`
             // causes a compilation error. As a workaround, the proof is annotated with the
             // underlying struct type instead.
@@ -3013,4 +3090,30 @@ mod verify {
     generate_mut_byte_offset_from_slice_harness!(i64, check_mut_byte_offset_from_i64_slice);
     generate_mut_byte_offset_from_slice_harness!(i128, check_mut_byte_offset_from_i128_slice);
     generate_mut_byte_offset_from_slice_harness!(isize, check_mut_byte_offset_from_isize_slice);
+
+    // tracking issue: https://github.com/model-checking/kani/issues/3763
+    // Workaround: Directly verifying the method `<*mut dyn TestTrait>::byte_offset_from`
+    // causes a compilation error. As a workaround, the proof is annotated with the
+    // underlying struct type instead.
+    #[kani::proof_for_contract(<*mut TestStruct>::byte_offset_from)]
+    pub fn check_mut_byte_offset_from_dyn() {
+        const gen_size: usize = mem::size_of::<TestStruct>();
+        // Since the pointer generator cannot directly create pointers to `dyn Trait`,
+        // we first generate a pointer to the underlying struct and then cast it to a `dyn Trait` pointer.
+        let mut generator_caller = PointerGenerator::<gen_size>::new();
+        let mut generator_input = PointerGenerator::<gen_size>::new();
+        let ptr_caller: *mut TestStruct = generator_caller.any_in_bounds().ptr;
+        let ptr_input: *mut TestStruct = if kani::any() {
+            generator_caller.any_alloc_status().ptr
+        } else {
+            generator_input.any_alloc_status().ptr
+        };
+
+        let ptr_caller = ptr_caller as *mut dyn TestTrait;
+        let ptr_input = ptr_input as *mut dyn TestTrait;
+
+        unsafe {
+            ptr_caller.byte_offset_from(ptr_input);
+        }
+    }
 }
