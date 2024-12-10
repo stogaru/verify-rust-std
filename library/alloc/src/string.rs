@@ -3228,7 +3228,7 @@ mod verify {
     
     #[kani::proof]
     #[kani::unwind(9)]  // Unwind up to 9 times
-    /// This proof harness verifies the correctness and safety of the `String::remove`
+    /// This proof harness verifies the safety of the `String::remove`
     /// 
     /// The harness checks:
     /// 1. The string length decreases by one after the `remove` operation.
