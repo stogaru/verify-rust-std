@@ -3088,7 +3088,6 @@ impl<T, const N: usize> From<[T; N]> for VecDeque<T> {
 mod verify {
     use core::kani;
     use crate::collections::VecDeque;
-    use core::kani::implies;
 
     #[kani::proof]
     fn check_vecdeque_swap() {
@@ -3116,10 +3115,9 @@ mod verify {
         assert_eq!(deque[j], elem_i_before);
 
         // Ensure other elements remain unchanged
-        for k in 0..len {
-            if k != i && k != j {
-                assert_eq!(deque[k], arr[k]);
-            }
+        let k = kani::any_where(|&x: &usize| x < len);
+        if k != i && k != j {
+            assert!(deque[k] == arr[k]);
         }
     }
 

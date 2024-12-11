@@ -4048,33 +4048,32 @@ mod verify {
 
         // Creating a vector directly from a fixed length arbitrary array
         let mut arr: [i32; ARRAY_LEN] = kani::Arbitrary::any_array();
-        let mut vec = Vec::from(&arr);
+        let mut vect = Vec::from(&arr);
 
         // Recording the original length and a copy of the vector for validation
-        let original_len = vec.len();
-        let original_vec = vec.clone();
+        let original_len = vect.len();
+        let original_vec = vect.clone();
 
         // Generating a nondeterministic index which is guaranteed to be within bounds
         let index: usize = kani::any_where(|x| *x < original_len);
 
-        let removed = vec.swap_remove(index);
+        let removed = vect.swap_remove(index);
 
         // Verifying that the length of the vector decreases by one after the operation is performed
-        assert!(vec.len() == original_len - 1, "Length should decrease by 1");
+        assert!(vect.len() == original_len - 1, "Length should decrease by 1");
 
         // Verifying that the removed element matches the original element at the index
         assert!(removed == original_vec[index], "Removed element should match original");
 
         // Verifying that the removed index now contains the element originally at the vector's last index if applicable
         if index < original_len - 1 {
-            assert!(vec[index] == original_vec[original_len - 1], "Index should contain last element");
+            assert!(vect[index] == original_vec[original_len - 1], "Index should contain last element");
         }
 
         // Check that all other unaffected elements remain unchanged
-        for i in 0..vec.len() {
-            if i != index && i < original_len - 1 {
-                assert!(vec[i] == original_vec[i], "Unaffected elements should remain unchanged");
-            }
+        let k = kani::any_where(|&x: &usize| x < original_len - 1);
+        if k != index {
+            assert!(vect[k] == arr[k]);
         }
 
     }
