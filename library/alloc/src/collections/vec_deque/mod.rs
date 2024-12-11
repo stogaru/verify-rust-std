@@ -3088,12 +3088,13 @@ impl<T, const N: usize> From<[T; N]> for VecDeque<T> {
 mod verify {
     use core::kani;
     use crate::collections::VecDeque;
+    use core::kani::implies;
 
     #[kani::proof]
-    // Stubbing is currently not possible for functions returning pointers as 
-    // Arbitrary trait hasn't been implemented for them
-    // #[kani::stub_verified(<*mut u32>::add)]
     fn check_vecdeque_swap() {
+        // The array's length is set to an arbitrary value, which defines its size.
+        // In this case, implementing a dynamic array is not possible using any_array
+        // The more elements in the array the longer the veification time.
         const ARRAY_LEN: usize = 40;
         let mut arr: [u32; ARRAY_LEN] = kani::Arbitrary::any_array();
         let mut deque: VecDeque<u32> = VecDeque::from(arr);

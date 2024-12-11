@@ -2580,9 +2580,6 @@ mod verify {
     use crate::option::Option;
 
     #[kani::proof]
-    // Stubbing is currently not possible for functions returning pointers as 
-    // Arbitrary trait hasn't been implemented for them
-    // #[kani::stub_verified(<*const u32>::byte_add)]
     fn verify_as_slice() {
         if kani::any() {
             // Case 1: Option is Some
