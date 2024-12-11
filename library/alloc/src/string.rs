@@ -3227,24 +3227,25 @@ mod verify {
     use crate::string::String;
     
     #[kani::proof]
-    #[kani::unwind(9)]  // Unwind up to 9 times
-    /// This proof harness verifies the correctness and safety of the `String::remove`
+    // We unwind 5 times because this depth ensures that all potential execution paths for small input sizes 
+    // (e.g., ARRAY_SIZE=4) are exhaustively explored without causing performance bottlenecks.
+    #[kani::unwind(5)]
+
+    /// This proof harness verifies the safety of the `String::remove`
     /// 
     /// The harness checks:
     /// 1. The string length decreases by one after the `remove` operation.
-    /// 2. The removed character is valid ASCII.
-    /// 3. The removed character matches the character at the specified index in the original string.
-    /// 
-    /// This ensures the `remove` function behaves as expected for constrained inputs.
+    /// 2. The removed character matches the character at the specified index in the original string.
     fn check_remove() {
-        // array size is chosen because it is small enough to be feasible to check exhaustively
-        const ARRAY_SIZE: usize = 8;
+        // array size is chosen as 4 because it is small enough to be feasible to check exhaustively
+        // average verification time: 6 seconds, it increase to 20 seconds when ARRAY_SIZE=8
+        const ARRAY_SIZE: usize = 4;
         let arr: [u8; ARRAY_SIZE] = kani::Arbitrary::any_array();
         for &byte in &arr {
             kani::assume(byte.is_ascii()); // Constrain to ASCII characters
         }
 
-        // Convert byte array to a String directly (safe since all are ASCII)
+        // Convert byte array to a String directly
         let mut s = unsafe { String::from_utf8_unchecked(arr.to_vec()) };
 
         // Ensure the string is not empty
@@ -3262,11 +3263,7 @@ mod verify {
         // Verify the string length decreases correctly
         assert_eq!(s.len(), arr.len() - 1);
 
-        // Verify the removed character is a valid ASCII character
-        assert!(removed_char.is_ascii());
-
         // Assert that the removed character matches the original character at `idx`
         assert_eq!(removed_char, original_char);
     }
 }
-
