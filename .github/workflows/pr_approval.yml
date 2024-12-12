@@ -52,8 +52,11 @@ jobs:
               pull_number = context.issue.number;
             }
 
+            console.log(`owner is ${owner}`);
+            console.log(`pull_number is ${pull_number}`);
 
             // Get parsed data
+            let requiredApprovers;
             try {
               const tomlContent = fs.readFileSync('.github/pull_requests.toml', 'utf8');
               console.log('TOML content:', tomlContent);
@@ -70,38 +73,63 @@ jobs:
               return;
             }
 
-            // Get all reviews
-            const reviews = await github.rest.pulls.listReviews({
-              owner,
-              repo,
-              pull_number
-            });
+            // Get all reviews with pagination
+            async function getAllReviews() {
+              let allReviews = [];
+              let page = 1;
+              let page_limit = 100;
+              
+              while (page < page_limit) {
+                const response = await github.rest.pulls.listReviews({
+                  owner,
+                  repo,
+                  pull_number,
+                  per_page: 100,
+                  page
+                });
+                
+                allReviews = allReviews.concat(response.data);
+                
+                if (response.data.length < 100) {
+                  break;
+                }
+                
+                page++;
+              }
+
+              if (page == page_limit) {
+                console.log(`WARNING: Reached page limit of ${page_limit} while fetching reviews data; approvals count may be less than the real total.`)
+              }
+              
+              return allReviews;
+            }
+
+            const reviews = await getAllReviews();
 
             // Example: approvers = ["celina", "zyad"]
             const approvers = new Set(
-              reviews.data
+              reviews
                 .filter(review => review.state === 'APPROVED')
                 .map(review => review.user.login)
             );
 
             const requiredApprovals = 2;
-            const currentCountfromCommittee = Array.from(approvers)
-              .filter(approver => requiredApprovers.includes(approver))
-              .length;
-
-            // TODO: Improve logging and messaging to the user
-            console.log('PR Approvers:', Array.from(approvers));
-            console.log('Required Approvers:', requiredApprovals);
+            const committeeApprovers = Array.from(approvers)
+              .filter(approver => requiredApprovers.includes(approver));
+            const currentCountfromCommittee = committeeApprovers.length;
 
             // Core logic that checks if the approvers are in the committee
-            const checkName = 'PR Approval Status';
-            const conclusion = (approvers.size >= requiredApprovals && currentCountfromCommittee >= 2) ? 'success' : 'failure';
-            const output = {
-              title: checkName,
-              summary: `PR has ${approvers.size} total approvals and ${requiredApprovals} required approvals.`,
-              text: `Approvers: ${Array.from(approvers).join(', ')}\nRequired Approvers: ${requiredApprovers.join(', ')}`
-            };
+            const conclusion = (currentCountfromCommittee >= 2) ? 'success' : 'failure';
 
+            console.log('PR Approval Status');
+            console.log(`PR has ${approvers.size} total approvals and ${currentCountfromCommittee} required approvals from the committee.`);
+            
+            console.log(`Committee Members: [${requiredApprovers.join(', ')}]`);
+            console.log(`Committee Approvers: ${committeeApprovers.length === 0 ? 'NONE' : `[${committeeApprovers.join(', ')}]`}`);
+            console.log(`All Approvers: ${approvers.size === 0 ? 'NONE' : `[${Array.from(approvers).join(', ')}]`}`);
+            
             if (conclusion === 'failure') {
-              core.setFailed(`PR needs at least ${requiredApprovals} total approvals and 2 required approvals. Current approvals: ${approvers.size}, Required approvals: ${requiredApprovals}`);
+              core.setFailed(`PR needs 2 approvals from committee members, but it has ${currentCountfromCommittee}`);
+            } else {
+              core.info('PR approval check passed successfully.');
             }
